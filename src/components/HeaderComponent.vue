@@ -31,7 +31,7 @@ const props = defineProps({
             
             <!-- Speed -->
             <div class="flex items-center space-x-2">
-                <span class="text-lg">⚡</span>
+                <span class="text-lg">🏃</span>
                 <span class="text-lg font-bold">{{ props.monster.speed }}</span>
             </div>
             

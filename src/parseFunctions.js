@@ -69,7 +69,7 @@ function addTooltips(value) {
     
     // Define game terms and their explanations
     const gameTerms = {
-        'Dominated': 'The target is controlled by the dominating creature and must follow its commands. The target acts on the dominator\'s turn and cannot take actions against the dominator.',
+        'Dominated': 'TBD',
         'Grappled': 'The target\'s speed is reduced to 0 and cannot benefit from any bonus to speed. The condition ends if the grappler is incapacitated.',
         'Paralyzed': 'The target is incapacitated and cannot move or speak. Attack rolls against the target have advantage, and any attack that hits is a critical hit if the attacker is within 5 feet.',
         'Incapacitated': 'The target cannot take actions or reactions.',
@@ -92,7 +92,7 @@ function addTooltips(value) {
         result = result.replace(regex, (match) => {
             // Escape quotes in description to prevent HTML attribute issues
             const escapedDescription = description.replace(/"/g, '&quot;');
-            return `<span class="game-term cursor-pointer underline decoration-dotted decoration-accent text-accent font-semibold hover:decoration-solid" data-term="${term}" data-description="${escapedDescription}">${match}</span>`;
+            return `<span class="game-term cursor-pointer underline decoration-dotted decoration-accent font-semibold hover:decoration-solid" data-term="${term}" data-description="${escapedDescription}">${match}</span>`;
         });
     });
     
