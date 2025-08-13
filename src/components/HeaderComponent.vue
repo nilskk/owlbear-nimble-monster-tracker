@@ -20,7 +20,7 @@ const props = defineProps({
             <!-- Armor -->
             <div class="flex items-center space-x-2">
                 <span class="text-lg">🛡️</span>
-                <span class="text-lg font-bold">{{ props.monster.armor || 'N/A' }}</span>
+                <span class="text-lg font-bold">{{ props.monster.armor || '-' }}</span>
             </div>
             
             <!-- Hit Points -->
@@ -32,7 +32,7 @@ const props = defineProps({
             <!-- Speed -->
             <div class="flex items-center space-x-2">
                 <span class="text-lg">🏃</span>
-                <span class="text-lg font-bold">{{ props.monster.speed }}</span>
+                <span class="text-lg font-bold">{{ props.monster.speed || '6' }}</span>
             </div>
             
             <!-- Saves -->
