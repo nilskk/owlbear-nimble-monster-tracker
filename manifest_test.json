@@ -1,0 +1,14 @@
+{
+  "name": "Nimble Monster Tracker Test",
+  "description": "Psst.",
+  "version": "0.0.1",
+  "manifest_version": 1,
+  "author": "nilskk",
+  "action": {
+    "title": "Nimble Monster Tracker",
+    "icon": "/owlbear-nimble-monster-tracker/icon.svg",
+    "popover": "/owlbear-nimble-monster-tracker/",
+    "height": 800,
+    "width": 600
+  }
+}
