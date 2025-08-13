@@ -23,25 +23,19 @@ const groupedBestiary = ref({});
 const diceRollResult = ref(null);
 const bestiaryName = ref('');
 const selectedSource = ref('');
+const jsonUrl = ref('');
+const isLoading = ref(false);
 const gameTermSummary = ref(null);
 let timeoutId = null;
 
+
 onMounted(async () => {
-    const bestiary = await db.bestiary.toArray();
-    groupedBestiary.value = bestiary.reduce((acc, monster) => {
-        if (!acc[monster.source]) {
-            acc[monster.source] = [];
-        }
-        acc[monster.source].push(monster);
-        return acc;
-    }, {});
-    if (bestiary.length > 0) {
-        selectedMonster.value = bestiary[0];
-    }
+    await refreshBestiary();
     
     // Set up game term click listeners
     setupGameTermListeners();
 });
+
 
 const setupGameTermListeners = () => {
     // Use event delegation to handle clicks on dynamically added game terms
@@ -53,6 +47,7 @@ const setupGameTermListeners = () => {
         }
     });
 };
+
 
 const showGameTermSummary = (term, description) => {
     gameTermSummary.value = { term, description };
@@ -67,6 +62,7 @@ const showGameTermSummary = (term, description) => {
     }, 8000);
 };
 
+
 const hideGameTermSummary = () => {
     gameTermSummary.value = null;
     if (timeoutId) {
@@ -74,6 +70,7 @@ const hideGameTermSummary = () => {
         timeoutId = null;
     }
 };
+
 
 const rollDice = (value, rollMode) => {
     diceRollResult.value = rollDiceWithDiceRoller(value, rollMode);
@@ -86,9 +83,11 @@ const rollDice = (value, rollMode) => {
     }, 5000); // Hide the result after 5 seconds
 };
 
+
 const selectMonster = (monster) => {
     selectedMonster.value = monster;
 };
+
 
 const filteredGroupedBestiary = computed(() => {
     if (!searchInput.value) {
@@ -103,46 +102,179 @@ const filteredGroupedBestiary = computed(() => {
     return filtered;
 });
 
+
 const availableSources = computed(() => {
     return Object.keys(groupedBestiary.value);
 });
+
 
 const clearInput = () => {
     searchInput.value = '';
 };
 
-const saveJson = () => {
-  const files = fileInput.value.files;
-  const allMonsters = [];
-  let filesProcessed = 0;
+
+const saveJson = async () => {
+  if (isLoading.value) return; // Prevent multiple simultaneous requests
   
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const monster = JSON.parse(e.target.result);
-      // Add the bestiary name as source if provided, otherwise use selected source
-      const sourceToUse = bestiaryName.value || selectedSource.value;
-      if (sourceToUse) {
-        monster.source = sourceToUse;
+  const allMonsters = [];
+  isLoading.value = true;
+  
+  try {
+    // Handle URL input if provided
+    if (jsonUrl.value.trim()) {
+      try {
+        const url = jsonUrl.value.trim();
+        console.log('Fetching from URL:', url);
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+          mode: 'cors', // Handle CORS
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.warn('Response is not JSON, attempting to parse anyway. Content-Type:', contentType);
+        }
+        
+        const data = await response.json();
+        console.log('Fetched data:', data);
+        
+        // Handle both single monster objects and arrays of monsters
+        const monsters = Array.isArray(data) ? data : [data];
+        
+        for (const monster of monsters) {
+          // Add the bestiary name as source if provided, otherwise use selected source
+          const sourceToUse = bestiaryName.value || selectedSource.value;
+          if (sourceToUse) {
+            monster.source = sourceToUse;
+          }
+          allMonsters.push(monster);
+        }
+        
+        if (allMonsters.length > 0) {
+          console.log('Writing monsters to database:', allMonsters.length, 'monsters');
+          await writeBulkToTable(allMonsters);
+          // Clear the URL input after successful processing
+          jsonUrl.value = '';
+          // Refresh the bestiary data
+          await refreshBestiary();
+          console.log('Successfully loaded monsters from URL');
+        } else {
+          console.warn('No monsters found in the data');
+          alert('No valid monster data found at the provided URL.');
+        }
+      } catch (error) {
+        console.error('Error fetching JSON from URL:', error);
+        
+        // Provide more specific error messages
+        let errorMessage = 'Error fetching JSON from URL: ';
+        
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          errorMessage += 'Unable to connect to the URL. This might be due to:\n' +
+                         '• CORS policy restrictions\n' +
+                         '• Invalid URL\n' +
+                         '• Network connectivity issues\n' +
+                         '• The server is not responding';
+        } else if (error.name === 'SyntaxError') {
+          errorMessage += 'The response is not valid JSON format.';
+        } else {
+          errorMessage += error.message;
+        }
+        
+        alert(errorMessage);
+        return;
       }
-      allMonsters.push(monster);
-      filesProcessed++;
+    }
+    
+    // Handle file uploads if files are selected
+    const files = fileInput.value?.files;
+    if (files && files.length > 0) {
+      let filesProcessed = 0;
+      const fileMonsters = [];
       
-      // Once all files are processed, write the bulk data
-      if (filesProcessed === files.length) {
-        writeBulkToTable(allMonsters);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const monster = JSON.parse(e.target.result);
+            // Add the bestiary name as source if provided, otherwise use selected source
+            const sourceToUse = bestiaryName.value || selectedSource.value;
+            if (sourceToUse) {
+              monster.source = sourceToUse;
+            }
+            fileMonsters.push(monster);
+            filesProcessed++;
+            
+            // Once all files are processed, write the bulk data
+            if (filesProcessed === files.length) {
+              await writeBulkToTable(fileMonsters);
+              // Clear the file input
+              if (fileInput.value) {
+                fileInput.value.value = '';
+              }
+              // Refresh the bestiary data
+              await refreshBestiary();
+              isLoading.value = false;
+            }
+          } catch (error) {
+            console.error('Error parsing JSON file:', error);
+            alert(`Error parsing JSON file ${file.name}: ${error.message}`);
+            isLoading.value = false;
+          }
+        };
+        reader.readAsText(file);
       }
-    };
-    reader.readAsText(file);
+      return; // Exit here for file processing
+    }
+    
+    // If neither URL nor files are provided, show a message
+    if (!jsonUrl.value.trim() && (!files || files.length === 0)) {
+      alert('Please provide either a URL or select JSON files to upload.');
+    }
+  } finally {
+    // Only set loading to false if we're not processing files
+    const files = fileInput.value?.files;
+    if (!files || files.length === 0) {
+      isLoading.value = false;
+    }
   }
 };
 
-const deleteData = () => {
-    clearTable();
+
+const refreshBestiary = async () => {
+    const bestiary = await db.bestiary.toArray();
+    groupedBestiary.value = bestiary.reduce((acc, monster) => {
+        if (!acc[monster.source]) {
+            acc[monster.source] = [];
+        }
+        acc[monster.source].push(monster);
+        return acc;
+    }, {});
+    if (bestiary.length > 0 && !selectedMonster.value) {
+        selectedMonster.value = bestiary[0];
+    }
 };
 
+
+const deleteData = async () => {
+    await clearTable();
+    await refreshBestiary();
+};
+
+
 let lastCreature = null;
+
 
 function handlePlayerChange(player) {
     if(!player.selection) {
@@ -160,6 +292,7 @@ function handlePlayerChange(player) {
     }); 
 }
 
+
 function showMonsterSheet(item) {
     if (!item || !item.metadata[`${ID}/monstersheet`]) return;
   
@@ -171,18 +304,39 @@ function showMonsterSheet(item) {
     
 }
 
+
 OBR.player.onChange(handlePlayerChange);
+
 
 const updateTokens = () => {
     myModal.value.showModal();
 };
 
+
+const confirmTokenUpdate = () => {
+    OBR.player.getSelection().then((itemIds) => {
+        console.log(itemIds);
+        if (itemIds.length > 0) {
+            OBR.scene.items.getItems(itemIds).then((items) => {
+                console.log(items);
+                OBR.scene.items.updateItems(items, (items2) => {
+                    for (let item of items2) {
+                        item.metadata[`${ID}/monstersheet`] = JSON.parse(JSON.stringify(selectedMonster.value))
+                    }
+                });
+            });
+        }
+    });
+    myModal.value.close();
+};
+
+
 const compositeString = computed(() => {
     if (!selectedMonster.value || !diceRollResult.value) return '';
     return `${selectedMonster.value.name} rolls ${diceRollResult.value[0]}`;
 });
-
 </script>
+
 
 <template>
     <div class="stats bg-neutral z-50 fixed bottom-1 right-1" v-if="diceRollResult !== null">
@@ -273,21 +427,30 @@ const compositeString = computed(() => {
             <div class="menu p-4 w-80 min-h-full bg-base-200 text-base-content flex flex-col">
                 <!-- Sidebar content here -->
                 <div class="flex-grow space-y-2">
-                    <p class="font-bold">Upload JSON Monster file</p>
+                    <p class="font-bold">Choose New or Existing Bestiary</p>
                     <input type="text" placeholder="Enter bestiary name" v-model="bestiaryName" class="input input-bordered input-sm w-full max-w-xs" />
                     <select v-model="selectedSource" class="select select-bordered select-sm w-full max-w-xs">
                         <option value="">Select existing source</option>
                         <option v-for="source in availableSources" :key="source" :value="source">{{ source }}</option>
                     </select>
+                    <p class="font-bold">Load from URL</p>
+                    <input type="url" placeholder="https://example.com/monster.json" v-model="jsonUrl" class="input input-bordered input-sm w-full max-w-xs" />
+                    <p class="font-bold">Or Upload JSON Monster file</p>
                     <input type="file" multiple ref="fileInput" class="file-input file-input-bordered file-input-sm w-full max-w-xs" />
-                    <button @click="saveJson" class="btn btn-primary w-full">Save</button>
+                    <button @click="saveJson" :disabled="isLoading" class="btn btn-primary w-full">
+                        <span v-if="isLoading" class="loading loading-spinner loading-sm"></span>
+                        {{ isLoading ? 'Loading...' : 'Load Monsters' }}
+                    </button>
+                </div>
+                <!-- Delete button at the bottom -->
+                <div class="mt-4">
                     <button @click="deleteData" class="btn btn-error w-full">Delete all data</button>
-                </div> 
+                </div>
             </div> 
         </div>
     </div>
 </template>
 
-<style scoped>
 
+<style scoped>
 </style>

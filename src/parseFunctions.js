@@ -69,18 +69,24 @@ function addTooltips(value) {
     
     // Define game terms and their explanations
     const gameTerms = {
-        'Dominated': 'TBD',
-        'Grappled': 'The target\'s speed is reduced to 0 and cannot benefit from any bonus to speed. The condition ends if the grappler is incapacitated.',
-        'Paralyzed': 'The target is incapacitated and cannot move or speak. Attack rolls against the target have advantage, and any attack that hits is a critical hit if the attacker is within 5 feet.',
-        'Incapacitated': 'The target cannot take actions or reactions.',
-        'Blinded': 'The target cannot see and automatically fails ability checks that require sight. Attack rolls against the target have advantage, and the target\'s attack rolls have disadvantage.',
-        'Charmed': 'The target cannot attack the charmer or target the charmer with harmful abilities or magical effects. The charmer has advantage on social interaction checks with the target.',
-        'Frightened': 'The target has disadvantage on ability checks and attack rolls while the source of fear is within line of sight. The target cannot willingly move closer to the source of fear.',
-        'Poisoned': 'The target has disadvantage on attack rolls and ability checks.',
-        'Prone': 'The target\'s only movement option is to crawl. Attack rolls against the target have advantage if the attacker is within 5 feet, otherwise disadvantage.',
-        'Restrained': 'The target\'s speed becomes 0. Attack rolls against the target have advantage, and the target\'s attack rolls have disadvantage.',
-        'Stunned': 'The target is incapacitated, cannot move, and can speak only falteringly. Attack rolls against the target have advantage.',
-        'Unconscious': 'The target is incapacitated, cannot move or speak, and is unaware of surroundings. Attack rolls against the target have advantage, and any attack that hits is a critical hit if within 5 feet.'
+        'Blinded': 'Can’t see. Attacks against you have advantage, and your attacks have disadvantage.',
+        'Bloodied': 'At half HP or less.',
+        'Charmed': 'Sees the charmer as an ally. Charmer has advantage on social interactions with you.',
+        'Dazed': 'Heroes: lose 1 action; monsters: can perform one less action on their next turn.',
+        'Dying': 'At 0 HP. Taking damage while dying causes 2 Wounds, a crit causes 3 instead.',
+        'Frightened': 'Disadvantage on rolls when source of fear is nearby; speed halved when moving closer to it.',
+        'Grappled': 'Cannot move. Attacks against you have advantage.',
+        'Restrained': 'Cannot move. Attacks against you have advantage.',
+        'Hampered': 'Any creature with their actions or movement reduced (e.g., Dazed, Grappled, Prone, Difficult Terrain).',
+        'Incapacitated': 'Can’t do anything. Attacks against you have advantage, and melee attacks that hit, crit.',
+        'Invisible': 'Cannot be seen. Your attacks have advantage, and attacks against you have disadvantage.',
+        'Petrified': 'Incapacitated. You have all the benefits and drawbacks of being a rock! Immune to most damage',
+        'Poisoned': 'Disadvantage on rolls.',
+        'Prone': 'Movement costs twice as much, and disadvantage on attacks. Melee attacks against you have advantage; Ranged have disadvantage. Spend 3 spaces of your Speed to stand up.',
+        'Riding': 'You move with the creature you are riding. Any attacks that miss you, strike them.',
+        'Slowed': 'Speed halved during your next turn.',
+        'Taunted': 'Disadvantage on attacks except against the most recent taunter.',
+        'Wounded': 'Has any Wounds (typically 6 Wounds and a hero is dead).'
     };
     
     let result = value;
