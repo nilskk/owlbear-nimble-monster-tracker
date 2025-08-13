@@ -116,6 +116,13 @@ const clearInput = () => {
 const saveJson = async () => {
   if (isLoading.value) return; // Prevent multiple simultaneous requests
   
+  // Check if neither URL nor files are provided at the very beginning
+  const files = fileInput.value?.files;
+  if (!jsonUrl.value.trim() && (!files || files.length === 0)) {
+    alert('Please provide either a URL or select JSON files to upload.');
+    return;
+  }
+  
   const allMonsters = [];
   isLoading.value = true;
   
@@ -153,11 +160,16 @@ const saveJson = async () => {
         const monsters = Array.isArray(data) ? data : [data];
         
         for (const monster of monsters) {
-          // Add the bestiary name as source if provided, otherwise use selected source
-          const sourceToUse = bestiaryName.value || selectedSource.value;
-          if (sourceToUse) {
-            monster.source = sourceToUse;
+          // Ensure the monster has a name property
+          if (!monster.name) {
+            console.warn('Monster missing name property, setting default');
+            monster.name = 'Unknown Monster';
           }
+          
+          // Add the bestiary name as source if provided, otherwise use selected source, or default
+          const sourceToUse = bestiaryName.value || selectedSource.value || 'Default';
+          monster.source = sourceToUse;
+          
           allMonsters.push(monster);
         }
         
@@ -208,11 +220,17 @@ const saveJson = async () => {
         reader.onload = async (e) => {
           try {
             const monster = JSON.parse(e.target.result);
-            // Add the bestiary name as source if provided, otherwise use selected source
-            const sourceToUse = bestiaryName.value || selectedSource.value;
-            if (sourceToUse) {
-              monster.source = sourceToUse;
+            
+            // Ensure the monster has a name property
+            if (!monster.name) {
+              console.warn(`Monster in file ${file.name} missing name property, setting default`);
+              monster.name = `Monster from ${file.name}`;
             }
+            
+            // Add the bestiary name as source if provided, otherwise use selected source, or default
+            const sourceToUse = bestiaryName.value || selectedSource.value || file.name;
+            monster.source = sourceToUse;
+            
             fileMonsters.push(monster);
             filesProcessed++;
             
@@ -236,11 +254,6 @@ const saveJson = async () => {
         reader.readAsText(file);
       }
       return; // Exit here for file processing
-    }
-    
-    // If neither URL nor files are provided, show a message
-    if (!jsonUrl.value.trim() && (!files || files.length === 0)) {
-      alert('Please provide either a URL or select JSON files to upload.');
     }
   } finally {
     // Only set loading to false if we're not processing files
