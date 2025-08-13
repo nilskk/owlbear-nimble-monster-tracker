@@ -130,7 +130,14 @@ const saveJson = async () => {
     // Handle URL input if provided
     if (jsonUrl.value.trim()) {
       try {
-        const url = jsonUrl.value.trim();
+        let url = jsonUrl.value.trim();
+        
+        // Add /nimbrew.json if the URL doesn't already have it
+        if (!url.includes('/nimbrew.json') && !url.endsWith('.json')) {
+          // Remove trailing slash if present, then add /nimbrew.json
+          url = url.replace(/\/$/, '') + '/nimbrew.json';
+        }
+        
         console.log('Fetching from URL:', url);
         
         const response = await fetch(url, {
@@ -446,9 +453,9 @@ const compositeString = computed(() => {
                         <option value="">Select existing source</option>
                         <option v-for="source in availableSources" :key="source" :value="source">{{ source }}</option>
                     </select>
-                    <p class="font-bold">Load from URL</p>
-                    <input type="url" placeholder="https://example.com/monster.json" v-model="jsonUrl" class="input input-bordered input-sm w-full max-w-xs" />
-                    <p class="font-bold">Or Upload JSON Monster file</p>
+                    <p class="font-bold">Load from Nimble.Monster URL</p>
+                    <input type="url" placeholder="https://nimble.monster/m/..." v-model="jsonUrl" class="input input-bordered input-sm w-full max-w-xs" />
+                    <p class="font-bold">Or Upload Nimbrew JSON Monster file</p>
                     <input type="file" multiple ref="fileInput" class="file-input file-input-bordered file-input-sm w-full max-w-xs" />
                     <button @click="saveJson" :disabled="isLoading" class="btn btn-primary w-full">
                         <span v-if="isLoading" class="loading loading-spinner loading-sm"></span>
