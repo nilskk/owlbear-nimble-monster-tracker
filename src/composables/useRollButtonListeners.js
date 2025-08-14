@@ -1,6 +1,9 @@
 import { nextTick } from 'vue';
 import { useGlobalContextMenu } from './useGlobalContextMenu.js';
 
+// Store handlers globally to ensure proper cleanup
+const buttonHandlers = new WeakMap();
+
 export async function useRollButtonListeners(emit, eventName = 'rollDice') {
     await nextTick();
     
@@ -18,9 +21,19 @@ export async function useRollButtonListeners(emit, eventName = 'rollDice') {
 
     const buttons = document.getElementsByClassName('rollButton');
     Array.from(buttons).forEach(button => {
-        // Remove existing listeners to prevent duplicates
-        button.removeEventListener('click', handleButtonClick);
-        button.removeEventListener('contextmenu', handleButtonRightClick);
+        // Remove existing handlers if they exist
+        const existingHandlers = buttonHandlers.get(button);
+        if (existingHandlers) {
+            button.removeEventListener('click', existingHandlers.click);
+            button.removeEventListener('contextmenu', existingHandlers.contextmenu);
+        }
+        
+        // Store new handlers
+        const handlers = {
+            click: handleButtonClick,
+            contextmenu: handleButtonRightClick
+        };
+        buttonHandlers.set(button, handlers);
         
         // Add new listeners
         button.addEventListener('click', handleButtonClick);

@@ -353,7 +353,11 @@ const confirmTokenUpdate = () => {
 
 const compositeString = computed(() => {
     if (!selectedMonster.value || !diceRollResult.value) return '';
-    return `${selectedMonster.value.name} rolls ${diceRollResult.value[0]}`;
+    let rollText = `${selectedMonster.value.name} rolls ${diceRollResult.value.originalNotation}`;
+    if (diceRollResult.value.rollMode !== 'normal') {
+        rollText += ` (${diceRollResult.value.rollMode === 'advantage' ? 'ADV' : 'DIS'} ${diceRollResult.value.count})`;
+    }
+    return rollText;
 });
 </script>
 
@@ -366,8 +370,28 @@ const compositeString = computed(() => {
                 ✕
             </button>
             <div class="stat-title">{{ compositeString }}</div>
-            <div class="stat-value text-primary">{{ diceRollResult[2] }}</div>
-            <div class="stat-desc">{{ diceRollResult[1] }}</div>
+            <div class="stat-value text-primary text-3xl">{{ diceRollResult.total }}</div>
+            <div class="stat-desc text-base">
+                <div class="flex flex-wrap gap-1 items-center">
+                    <template v-for="(die, index) in diceRollResult.dice" :key="index">
+                        <span 
+                            :class="{
+                                'line-through opacity-50': die.isDropped,
+                                'text-red-400': die.isPrimary && die.isMinValue && !die.isDropped,
+                                'text-green-400': (die.isPrimary && die.isMaxValue && !die.isDropped) || (die.isExploding && die.isMaxValue),
+                            }"
+                            class="inline-block transition-all"
+                        >
+                            <span 
+                                :class="{
+                                    'text-lg border-2 border-current px-1 rounded': die.isPrimary
+                                }"
+                            >{{ die.value }}</span><span v-if="die.isExploding && die.isMaxValue">💥</span>
+                        </span><span v-if="index < diceRollResult.dice.length - 1" class="text-base-content">,</span>
+                    </template>
+                    <span v-if="diceRollResult.modifier" class="ml-1 text-base-content">{{ diceRollResult.modifier }}</span>
+                </div>
+            </div>
         </div>
     </div>
     
