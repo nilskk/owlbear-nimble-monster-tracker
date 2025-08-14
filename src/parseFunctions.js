@@ -43,7 +43,7 @@ function parseSaves(value) {
 
     let result = value;
 
-    const savesPattern = /((?:INT|WIL|DEX|STR)[+\-]+)/gi;
+    const savesPattern = /(\b[\w\/]+[+\-]+\d*)/gi;
 
     // Replace ability score modifiers
     result = result.replace(savesPattern, (match) => {

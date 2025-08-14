@@ -1,9 +1,21 @@
 <script setup>
+import { onMounted } from 'vue';
 import { parseText, parseSaves } from '../parseFunctions';
+import { useRollButtonListeners } from '../composables/useRollButtonListeners.js';
 
 const props = defineProps({
     monster: Object
 })
+
+const emit = defineEmits(['rollDiceHeader'])
+
+onMounted(async () => {
+    await useRollButtonListeners(emit, 'rollDiceHeader');
+});
+
+const rollD20 = () => {
+    emit('rollDiceHeader', '1d20', 'normal');
+};
 
 </script>
 
@@ -37,7 +49,7 @@ const props = defineProps({
             
             <!-- Saves -->
             <div class="flex items-center space-x-2" v-if="props.monster.saves">
-                <span class="text-lg">🎲</span>
+                <button @click="rollD20" class="btn btn-ghost btn-sm p-1 text-lg hover:bg-base-300">🎲</button>
                 <span class="text-lg font-bold" v-html="parseSaves(props.monster.saves)"></span>
             </div>
         </div>
