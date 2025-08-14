@@ -11,33 +11,7 @@ const props = defineProps({
 const emit = defineEmits(['rollDicePassive'])
 
 const attachListeners = async () => {
-    await nextTick();
-    const handleButtonClick = (event) => {
-        emit('rollDicePassive', event.target.innerText, "normal");
-    };
-
-    const handleButtonRightClick = (event) => {
-        emit('rollDicePassive', event.target.innerText, "advantage");
-    };
-
-    const handleButtonMiddleClick = (event) => {
-        emit('rollDicePassive', event.target.innerText, "disadvantage");
-    };
-
-    const buttons = document.getElementsByClassName('rollButton');
-    Array.from(buttons).forEach(button => {
-        button.addEventListener('click', handleButtonClick);
-        button.addEventListener('contextmenu', (event) => {
-            event.preventDefault();
-            handleButtonRightClick(event);
-        });
-        button.addEventListener('mousedown', (event) => {
-            if (event.button === 1) {
-                event.preventDefault();
-                handleButtonMiddleClick(event);
-            }
-        });
-    });
+    await useRollButtonListeners(emit, 'rollDicePassive');
 };
 onMounted(attachListeners);
 onUpdated(attachListeners);

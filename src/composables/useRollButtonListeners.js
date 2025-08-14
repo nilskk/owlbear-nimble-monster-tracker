@@ -1,34 +1,29 @@
 import { nextTick } from 'vue';
+import { useGlobalContextMenu } from './useGlobalContextMenu.js';
 
-export async function useRollButtonListeners(emit) {
+export async function useRollButtonListeners(emit, eventName = 'rollDice') {
     await nextTick();
+    
+    const { show, close } = useGlobalContextMenu();
+
     const handleButtonClick = (event) => {
-        console.log(event.target.innerText);
-        emit('rollDice', event.target.innerText, "normal");
+        close(); // Close any open context menu
+        emit(eventName, event.target.innerText, "normal");
     };
 
     const handleButtonRightClick = (event) => {
-        console.log(event.target.innerText);
-        emit('rollDice', event.target.innerText, "advantage");
-    };
-
-    const handleButtonMiddleClick = (event) => {
-        console.log(event.target.innerText);
-        emit('rollDice', event.target.innerText, "disadvantage");
+        event.preventDefault();
+        show(event, event.target.innerText, emit, eventName);
     };
 
     const buttons = document.getElementsByClassName('rollButton');
     Array.from(buttons).forEach(button => {
+        // Remove existing listeners to prevent duplicates
+        button.removeEventListener('click', handleButtonClick);
+        button.removeEventListener('contextmenu', handleButtonRightClick);
+        
+        // Add new listeners
         button.addEventListener('click', handleButtonClick);
-        button.addEventListener('contextmenu', (event) => {
-            event.preventDefault();
-            handleButtonRightClick(event);
-        });
-        button.addEventListener('mousedown', (event) => {
-            if (event.button === 1) {
-                event.preventDefault();
-                handleButtonMiddleClick(event);
-            }
-        });
+        button.addEventListener('contextmenu', handleButtonRightClick);
     });
 }

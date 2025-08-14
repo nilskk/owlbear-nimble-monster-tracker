@@ -3,7 +3,7 @@ import HeaderComponent from './components/HeaderComponent.vue';
 import ActionsComponent from './components/ActionsComponent.vue';
 import PassiveComponent from './components/PassiveComponent.vue';
 import LegendaryComponent from './components/LegendaryComponent.vue';
-import RollComponent from './components/RollComponent.vue';
+import GlobalRollContextMenu from './components/GlobalRollContextMenu.vue';
 import { ref, computed, onMounted } from 'vue'
 import { vOnClickOutside } from '@vueuse/components'
 import { db } from './db'
@@ -26,7 +26,7 @@ const selectedSource = ref('');
 const jsonUrl = ref('');
 const isLoading = ref(false);
 const gameTermSummary = ref(null);
-let timeoutId = null;
+let gameTermTimeoutId = null;
 
 
 onMounted(async () => {
@@ -53,34 +53,34 @@ const showGameTermSummary = (term, description) => {
     gameTermSummary.value = { term, description };
     
     // Auto-hide after 8 seconds
-    if (timeoutId) {
-        clearTimeout(timeoutId);
+    if (gameTermTimeoutId) {
+        clearTimeout(gameTermTimeoutId);
     }
-    timeoutId = setTimeout(() => {
+    gameTermTimeoutId = setTimeout(() => {
         gameTermSummary.value = null;
-        timeoutId = null;
+        gameTermTimeoutId = null;
     }, 8000);
 };
 
 
 const hideGameTermSummary = () => {
     gameTermSummary.value = null;
-    if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
+    if (gameTermTimeoutId) {
+        clearTimeout(gameTermTimeoutId);
+        gameTermTimeoutId = null;
     }
 };
 
 
-const rollDice = (value, rollMode) => {
-    diceRollResult.value = rollDiceWithDiceRoller(value, rollMode);
-    if (timeoutId) {
-        clearTimeout(timeoutId); // Clear the existing timeout
-    }
-    timeoutId = setTimeout(() => {
-        diceRollResult.value = null;
-        timeoutId = null; // Reset the timeout ID
-    }, 5000); // Hide the result after 5 seconds
+const closeDiceResult = () => {
+    diceRollResult.value = null;
+};
+
+const rollDice = (value, rollMode, count = 1) => {
+    // Close any existing dice result when starting a new roll
+    diceRollResult.value = null;
+    
+    diceRollResult.value = rollDiceWithDiceRoller(value, rollMode, count);
 };
 
 
@@ -360,7 +360,11 @@ const compositeString = computed(() => {
 
 <template>
     <div class="stats bg-neutral z-50 fixed bottom-1 right-1" v-if="diceRollResult !== null">
-        <div class="stat">
+        <div class="stat relative">
+            <button @click="closeDiceResult" 
+                    class="btn btn-ghost btn-xs absolute top-1 right-1 w-6 h-6 min-h-6 p-0">
+                ✕
+            </button>
             <div class="stat-title">{{ compositeString }}</div>
             <div class="stat-value text-primary">{{ diceRollResult[2] }}</div>
             <div class="stat-desc">{{ diceRollResult[1] }}</div>
@@ -396,8 +400,8 @@ const compositeString = computed(() => {
     </dialog>
     <div class="drawer drawer-end overflow-x-hidden">
         <input id="my-drawer-1" type="checkbox" class="drawer-toggle" /> 
-        <div class="drawer-content flex flex-col overflow-x-hidden">
-            <div class="navbar bg-base-300">
+        <div class="drawer-content flex flex-col overflow-x-hidden h-screen">
+            <div class="navbar bg-base-300 flex-shrink-0">
                 <div  class="flex-1 justify-start">
                     <div v-if="selectedMonster" class="dropdown dropdown-begin z-50" v-on-click-outside="clearInput">
                         <input tabindex="0" type="search" class="input m-1" :placeholder="selectedMonster.name"
@@ -434,12 +438,11 @@ const compositeString = computed(() => {
                     </label>
                 </div>
             </div>
-            <div v-if="selectedMonster" class="overflow-x-hidden">
+            <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1" :class="{ 'pb-32': diceRollResult !== null }">
                 <HeaderComponent :monster="selectedMonster" />
-                <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode) => rollDice(value, rollMode)" />
-                <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode) => rollDice(value, rollMode)" />
-                <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode) => rollDice(value, rollMode)" />
-                <RollComponent :monster="selectedMonster" @rollDice="(value, rollMode) => rollDice(value, rollMode)" />
+                <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count) => rollDice(value, rollMode, count)" />
+                <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count) => rollDice(value, rollMode, count)" />
+                <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count) => rollDice(value, rollMode, count)" />
             </div>
         </div>
         <div class="drawer-side">
@@ -469,6 +472,9 @@ const compositeString = computed(() => {
             </div> 
         </div>
     </div>
+    
+    <!-- Global Context Menu -->
+    <GlobalRollContextMenu />
 </template>
 
 

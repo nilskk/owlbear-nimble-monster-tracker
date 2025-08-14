@@ -1,7 +1,7 @@
 <script setup>
 import { ref, toRefs, onMounted, onUpdated, nextTick, computed } from 'vue'
 import { parseText } from '../parseFunctions';
-import { useRollButtonListeners } from '../composables/useRollButtonListeners';
+import { useRollButtonListeners } from '../composables/useRollButtonListeners.js';
 
 
 const props = defineProps({
@@ -11,33 +11,7 @@ const props = defineProps({
 const emit = defineEmits(['rollDiceAction'])
 
 const attachListeners = async () => {
-    await nextTick();
-    const handleButtonClick = (event) => {
-        emit('rollDiceAction', event.target.innerText, "normal");
-    };
-
-    const handleButtonRightClick = (event) => {
-        emit('rollDiceAction', event.target.innerText, "advantage");
-    };
-
-    const handleButtonMiddleClick = (event) => {
-        emit('rollDiceAction', event.target.innerText, "disadvantage");
-    };
-
-    const buttons = document.getElementsByClassName('rollButton');
-    Array.from(buttons).forEach(button => {
-        button.addEventListener('click', handleButtonClick);
-        button.addEventListener('contextmenu', (event) => {
-            event.preventDefault();
-            handleButtonRightClick(event);
-        });
-        button.addEventListener('mousedown', (event) => {
-            if (event.button === 1) {
-                event.preventDefault();
-                handleButtonMiddleClick(event);
-            }
-        });
-    });
+    await useRollButtonListeners(emit, 'rollDiceAction');
 };
 onMounted(attachListeners);
 onUpdated(attachListeners);
@@ -65,22 +39,6 @@ onUpdated(attachListeners);
                 </p>
             </div>
         </div>
-
-        <!-- Original format actions
-        <p v-if="props.monster.action" v-for="item in props.monster.action" class="w-full break-words space-x-1">
-            <span v-html="parseText(item.name)" class="font-bold"></span>
-            <p v-for="subitem in item.entries" class="w-full break-words space-x-1">
-                <p v-if="subitem.items" class="space-y-1 ps-6">
-                    <p v-for="subsubitem in subitem.items" class="w-full break-words space-x-1">
-                        <span v-html="parseText(subsubitem.name)" class="font-semibold"></span>
-                        <span v-for="subsubsubitem in subsubitem.entries" v-html="parseText(subsubsubitem)"
-                            class="w-full break-words space-x-1 "></span>
-                        <span v-html="parseText(subsubitem.entry)" class=""></span>
-                    </p>
-                </p>
-                <span v-else v-html="parseText(subitem)" class=""></span>
-            </p>
-        </p> -->
     </div>
 </template>
 

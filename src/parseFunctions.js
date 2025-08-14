@@ -8,32 +8,6 @@ function removeMatchingElements(array, stringsToMatch) {
     return array.filter(element => !stringsToMatch.includes(element));
 }
 
-function handlePipe(value, mode="first") {
-    if (value.includes('|')) {
-        let parts = value.split('|');
-        parts = removeMatchingElements(parts, ['XPHB']);
-        if (mode === 'first') return parts[0];
-        if (mode === 'last') return parts[parts.length - 1];
-    }
-    return value;
-}
-
-function parseSpecialHp(value) {
-    if (typeof value === 'string') {
-        const match = value.match(/\d+/);
-        return match ? parseInt(match[0], 10) : value;
-    }
-    return value;
-}
-
-function parseSpecialAc(value) {
-    if (typeof value === 'string') {
-        const match = value.match(/\d+/);
-        return match ? parseInt(match[0], 10) : value;
-    }
-    return value;
-}
-
 function parseText(value) {
     if (!value) return value;
 
@@ -61,6 +35,21 @@ function parseText(value) {
     // Add tooltips for game terms LAST to avoid conflicts with HTML
     result = addTooltips(result);
     
+    return result;
+}
+
+function parseSaves(value) {
+    if (!value) return value;
+
+    let result = value;
+
+    const savesPattern = /((?:INT|WIL|DEX|STR)[+\-]+)/gi;
+
+    // Replace ability score modifiers
+    result = result.replace(savesPattern, (match) => {
+        return convertSaves(match.trim());
+    });
+
     return result;
 }
 
@@ -135,4 +124,8 @@ function convertDC(value) {
     return `<span class="font-bold text-primary">${value}</span>`;
 }
 
-export { parseText, parseMarkdown, addTooltips, capitalize, parseSpecialHp, parseSpecialAc };
+function convertSaves(value) {
+    return `<button class="btn btn-xs btn-outline btn-secondary font-bold rollSavesButton">${value}</button>`;
+}
+
+export { parseText, parseSaves, parseMarkdown, addTooltips, capitalize };

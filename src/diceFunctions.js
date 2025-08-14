@@ -1,7 +1,7 @@
 import { DiceRoll } from '@dice-roller/rpg-dice-roller';
 
-function rollDiceWithDiceRoller(diceString, rollMode="normal") {
-    diceString = convertDiceString(diceString, rollMode);
+function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1) {
+    diceString = convertDiceString(diceString, rollMode, count);
     const roll = new DiceRoll(diceString);
     const diceOutput = roll.output;
     
@@ -13,37 +13,33 @@ function processDiceOutput(diceOutput) {
     return splitValues;
 }
 
-function convertDamageToCritRoll(damageString) {
-    const diceRegex = /^(\d+)d(\d+)(.*)$/;
-    const match = damageString.match(diceRegex);
-
-    if (match) {
-        const numDice = parseInt(match[1], 10);
-        const diceType = match[2];
-        const modifier = match[3] || '';
-
-        // Double the number of dice
-        const doubledNumDice = numDice * 2;
-
-        // Reconstruct the dice notation with the doubled number of dice
-        const doubledDiceString = `${doubledNumDice}d${diceType}${modifier}`;
-
-        return doubledDiceString;
-    }
-
-    return damageString;
-}
-
-function convertDiceString(value, rollMode) {
-    if (rollMode === 'advantage') {
-        return (value.startsWith('+') || value.startsWith('-')) ? `2d20dl1${value}` : convertDamageToCritRoll(value);
-    }
-    if (rollMode === 'disadvantage') {
-        return (value.startsWith('+') || value.startsWith('-')) ? `2d20dh1${value}` : convertDamageToCritRoll(value);
-    }
+function convertDiceString(value, rollMode, count = 1) {
     if (rollMode === 'normal') {
-        return (value.startsWith('+') || value.startsWith('-')) ? `1d20${value}` : value;
+        return value;
     }
+    
+    // Parse dice notation pattern (e.g., "1d20+5", "2d6", "3d8-2")
+    const diceRegex = /^(\d+)d(\d+)(.*)$/;
+    const match = value.match(diceRegex);
+    
+    if (!match) {
+        return value; // Return unchanged if no dice pattern found
+    }
+    
+    const numDice = parseInt(match[1], 10);
+    const diceType = match[2];
+    const modifier = match[3] || '';
+    const totalDice = numDice + count;
+    
+    if (rollMode === 'advantage') {
+        return `${totalDice}d${diceType}dl${count}${modifier}`;
+    }
+    
+    if (rollMode === 'disadvantage') {
+        return `${totalDice}d${diceType}dh${count}${modifier}`;
+    }
+    
+    return value;
 }
 
 export { rollDiceWithDiceRoller }

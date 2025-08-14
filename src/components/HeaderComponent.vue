@@ -1,5 +1,5 @@
 <script setup>
-import { parseText } from '../parseFunctions';
+import { parseText, parseSaves } from '../parseFunctions';
 
 const props = defineProps({
     monster: Object
@@ -38,7 +38,7 @@ const props = defineProps({
             <!-- Saves -->
             <div class="flex items-center space-x-2" v-if="props.monster.saves">
                 <span class="text-lg">🎲</span>
-                <span class="text-lg font-bold">{{ props.monster.saves }}</span>
+                <span class="text-lg font-bold" v-html="parseSaves(props.monster.saves)"></span>
             </div>
         </div>
     </div>
