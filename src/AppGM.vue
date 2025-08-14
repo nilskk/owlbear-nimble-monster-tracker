@@ -370,7 +370,7 @@ const compositeString = computed(() => {
                 ✕
             </button>
             <div class="stat-title">{{ compositeString }}</div>
-            <div class="stat-value text-primary text-3xl">{{ diceRollResult.total }}</div>
+            <div class="stat-value text-primary text-4xl">{{ diceRollResult.total }}</div>
             <div class="stat-desc text-base">
                 <div class="flex flex-wrap gap-1 items-center">
                     <template v-for="(die, index) in diceRollResult.dice" :key="index">
