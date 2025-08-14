@@ -24,8 +24,8 @@ export async function useRollButtonListeners(emit, eventName = 'rollDice') {
         const saveText = event.target.innerText;
         
         // Parse the save text to determine advantage/disadvantage
-        // Examples: "STR+2", "WIL-1", "Stealth+3", "Athletics-"
-        const match = saveText.match(/^(\w+)([+\-]+)(\d*)$/);
+        // Examples: "STR+2", "WIL-1", "Stealth+3", "Athletics-", "INT/WILL++"
+        const match = saveText.match(/^([\w\/]+)([+\-]+)(\d*)$/);
         if (match) {
             const [, statName, signs, modifier] = match;
             const plusCount = (signs.match(/\+/g) || []).length;
@@ -49,17 +49,6 @@ export async function useRollButtonListeners(emit, eventName = 'rollDice') {
             // Fallback: just roll 1d20
             emit(eventName, "1d20", "normal");
         }
-    };
-
-    const handleSaveButtonRightClick = (event) => {
-        event.preventDefault();
-        const saveText = event.target.innerText;
-        
-        // Parse for context menu with 1d20 base
-        const match = saveText.match(/^(\w+)([+\-]+)(\d*)$/);
-        const diceNotation = match && match[3] ? `1d20+${match[3]}` : "1d20";
-        
-        show(event, diceNotation, emit, eventName);
     };
 
     // Handle regular roll buttons
@@ -97,12 +86,10 @@ export async function useRollButtonListeners(emit, eventName = 'rollDice') {
         // Store new handlers
         const handlers = {
             click: handleSaveButtonClick,
-            contextmenu: handleSaveButtonRightClick
         };
         buttonHandlers.set(button, handlers);
         
         // Add new listeners
         button.addEventListener('click', handleSaveButtonClick);
-        button.addEventListener('contextmenu', handleSaveButtonRightClick);
     });
 }
