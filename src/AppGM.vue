@@ -27,11 +27,10 @@ const selectedSource = ref('');
 const jsonUrl = ref('');
 const isLoading = ref(false);
 const lastDiceRolls = ref([]); // Array to store last 3 rolls with monster info
-const lastGameTerm = ref(null);
-const activeTab = ref(null); // 'rolls' or 'condition' or null
-const currentSlide = ref(1); // Track current slide (1-based to match slide IDs)
+const diceRollsVisible = ref(false); // Simple visibility state for dice rolls
 const expandedRolls = ref(new Set()); // Track which rolls are expanded
 const hoverTooltip = ref({ visible: false, term: '', description: '', x: 0, y: 0 }); // Tooltip state
+let rollVisibilityTimer = null; // Timer for auto-hiding rolls
 
 
 onMounted(async () => {
@@ -59,11 +58,19 @@ const setupGameTermListeners = () => {
     }, true);
 };
 
-
-const showGameTermSummary = (term, description) => {
-    lastGameTerm.value = { term, description };
-    // Automatically open the condition tab
-    activeTab.value = 'condition';
+const showDiceRollsFor5Seconds = () => {
+    // Clear any existing timer
+    if (rollVisibilityTimer) {
+        clearTimeout(rollVisibilityTimer);
+    }
+    
+    // Show dice rolls
+    diceRollsVisible.value = true;
+    
+    // Hide after 5 seconds
+    rollVisibilityTimer = setTimeout(() => {
+        diceRollsVisible.value = false;
+    }, 5000);
 };
 
 const showGameTermTooltip = (event, term, description) => {
@@ -120,20 +127,6 @@ const addRollToHistory = (rollResult, monster) => {
     if (lastDiceRolls.value.length > 3) {
         lastDiceRolls.value = lastDiceRolls.value.slice(0, 3);
     }
-    // Reset to first slide when new roll is added
-    currentSlide.value = 1;
-};
-
-const navigateToSlide = (slideNumber) => {
-    currentSlide.value = slideNumber;
-    // Navigate using the carousel's URL fragment method
-    window.location.hash = `slide${slideNumber}`;
-};
-
-const moveRollToTop = (rollIndex) => {
-    // Move the clicked roll to the top of the array
-    const selectedRoll = lastDiceRolls.value.splice(rollIndex, 1)[0];
-    lastDiceRolls.value.unshift(selectedRoll);
 };
 
 const toggleRollExpansion = (rollIndex) => {
@@ -151,23 +144,21 @@ const isRollExpanded = (rollIndex) => {
     return expandedRolls.value.has(`roll-${rollIndex}`);
 };
 
-const toggleLastRoll = () => {
-    if (activeTab.value === 'rolls') {
-        // Currently showing rolls, so hide all
-        activeTab.value = null;
+const toggleDiceRolls = () => {
+    if (diceRollsVisible.value) {
+        // Currently showing rolls, so hide them
+        diceRollsVisible.value = false;
+        // Clear any auto-hide timer
+        if (rollVisibilityTimer) {
+            clearTimeout(rollVisibilityTimer);
+        }
     } else if (lastDiceRolls.value.length > 0) {
-        // Show rolls tab
-        activeTab.value = 'rolls';
-    }
-};
-
-const toggleLastCondition = () => {
-    if (activeTab.value === 'condition') {
-        // Currently showing condition, so hide all
-        activeTab.value = null;
-    } else if (lastGameTerm.value) {
-        // Show condition tab
-        activeTab.value = 'condition';
+        // Show rolls manually (no timer for manual toggle)
+        diceRollsVisible.value = true;
+        // Clear any existing timer
+        if (rollVisibilityTimer) {
+            clearTimeout(rollVisibilityTimer);
+        }
     }
 };
 
@@ -180,15 +171,18 @@ const rollDice = (value, rollMode, count = 1, crit = true) => {
     if (selectedMonster.value) {
         addRollToHistory(diceRollResult.value, selectedMonster.value);
     }
-    // Automatically open the rolls tab
-    activeTab.value = 'rolls';
+    // Show dice rolls for 5 seconds
+    showDiceRollsFor5Seconds();
 };
 
 
 const selectMonster = (monster) => {
     selectedMonster.value = monster;
-    // Auto-close all tabs when switching monsters
-    activeTab.value = null;
+    // Auto-close dice rolls when switching monsters
+    diceRollsVisible.value = false;
+    if (rollVisibilityTimer) {
+        clearTimeout(rollVisibilityTimer);
+    }
     diceRollResult.value = null;
     // Keep roll history across monsters (now stores monster info with each roll)
     // Keep lastGameTerm across monsters (conditions are general game mechanics)
@@ -457,14 +451,6 @@ const confirmTokenUpdate = () => {
 };
 
 
-const rollTabText = computed(() => {
-    return 'Rolls';
-});
-
-const conditionTabText = computed(() => {
-    return 'Condition';
-});
-
 const formatRollNotation = (roll) => {
     let notation = roll.originalNotation;
     if (roll.rollMode !== 'normal') {
@@ -577,9 +563,9 @@ const formatRollNotation = (roll) => {
             
             <!-- Round D20 Toggle Button -->
             <div class="absolute bottom-8 right-8 z-20">
-                <button @click="toggleLastRoll" 
+                <button @click="toggleDiceRolls" 
                         class="btn btn-circle btn-lg btn-primary shadow-lg hover:shadow-xl transition-all"
-                        :class="{ 'btn-active': activeTab === 'rolls' }">
+                        :class="{ 'btn-active': diceRollsVisible }">
                     <!-- D20 Icosahedron SVG from dice CSS -->
                     <svg width="28" height="31" viewBox="0 0 28 31" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6">
                         <path d="M14 0L0 7.5V22.7L14 30.2L27 23.2L28 22.6V7.5L14 0ZM12 8.3L6.1 17.1L2.4 9.1L12 8.3ZM8 18L14 8.9L20 18H8ZM21.8 17.1L16 8.3L25.5 9L21.8 17.1ZM15 2.8L22.4 6.8L15 6.2V2.8ZM13 2.8V6.2L5.6 6.8L13 2.8ZM2 12.8L4.7 18.8L2 20.4V12.8ZM3 22.1L5.7 20.5L10.1 26L3 22.1ZM8 20H19L14 27.5L8 20ZM17.9 25.9L22.3 20.4L25 22L17.9 25.9ZM23.5 18.9L23.3 18.8L26 12.8V20.4L23.5 18.9Z" />
@@ -588,20 +574,18 @@ const formatRollNotation = (roll) => {
             </div>
             
             <!-- Dice Roll Result (Floating Window) -->
-            <div class="absolute bottom-24 right-8 z-10" v-if="activeTab === 'rolls'">
+            <div class="absolute bottom-24 right-8 z-10" v-if="diceRollsVisible">
                 <!-- Roll History Stack -->
-                <div class="space-y-2">
+                <div class="space-y-2 flex flex-col items-end">
                     <!-- Previous Rolls - Compact Display (Oldest to Newest) -->
                     <div v-for="(roll, index) in lastDiceRolls.slice(1).reverse()" 
                          :key="`compact-${index}`"
-                         class="bg-base-300 shadow-lg rounded-lg w-90 opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
+                         class="bg-base-300 shadow-lg rounded-lg cursor-pointer transition-all"
+                         :class="{ 'max-w-80': isRollExpanded(lastDiceRolls.length - 1 - index), 'w-auto': !isRollExpanded(lastDiceRolls.length - 1 - index) }"
                          @click="toggleRollExpansion(lastDiceRolls.length - 1 - index)">
                         
                         <!-- Compact View -->
                         <div v-if="!isRollExpanded(lastDiceRolls.length - 1 - index)" class="px-4 py-2 flex items-center justify-between">
-                            <div class="text-sm">
-                                <div class="text-xs opacity-70">{{ roll.monster?.name?.toUpperCase() || 'UNKNOWN' }}: {{ formatRollNotation(roll).toUpperCase() }}</div>
-                            </div>
                             <div class="text-xl font-bold text-primary">{{ roll.total }}</div>
                         </div>
                         
@@ -639,7 +623,7 @@ const formatRollNotation = (roll) => {
                     </div>
                     
                     <!-- Latest Roll - Full Display (At Bottom) -->
-                    <div v-if="lastDiceRolls.length > 0" class="bg-base-300 shadow-lg rounded-lg w-90">
+                    <div v-if="lastDiceRolls.length > 0" class="bg-base-300 shadow-lg rounded-lg max-w-80">
                         <div class="p-4">
                             <div class="text-xs opacity-70 mb-1">{{ lastDiceRolls[0].monster?.name || 'Unknown' }}</div>
                             <div class="flex items-center justify-start gap-3">
