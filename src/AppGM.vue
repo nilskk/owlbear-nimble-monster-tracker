@@ -17,6 +17,7 @@ const ID = 'com.nilskk.owlbear-nimble-token-tracker';
 const searchInput = ref('');
 const fileInput = ref(null);
 const myModal = ref(null);
+const settingsModal = ref(null);
 const playerSelection = ref(null)
 const selectedMonster = ref(null);
 const groupedBestiary = ref({});
@@ -26,7 +27,6 @@ const selectedSource = ref('');
 const jsonUrl = ref('');
 const isLoading = ref(false);
 const gameTermSummary = ref(null);
-let gameTermTimeoutId = null;
 
 
 onMounted(async () => {
@@ -51,24 +51,11 @@ const setupGameTermListeners = () => {
 
 const showGameTermSummary = (term, description) => {
     gameTermSummary.value = { term, description };
-    
-    // Auto-hide after 8 seconds
-    if (gameTermTimeoutId) {
-        clearTimeout(gameTermTimeoutId);
-    }
-    gameTermTimeoutId = setTimeout(() => {
-        gameTermSummary.value = null;
-        gameTermTimeoutId = null;
-    }, 8000);
 };
 
 
 const hideGameTermSummary = () => {
     gameTermSummary.value = null;
-    if (gameTermTimeoutId) {
-        clearTimeout(gameTermTimeoutId);
-        gameTermTimeoutId = null;
-    }
 };
 
 
@@ -363,7 +350,7 @@ const compositeString = computed(() => {
 
 
 <template>
-    <div class="stats bg-neutral z-50 fixed bottom-1 right-1" v-if="diceRollResult !== null">
+    <div class="stats bg-base-300 z-50 fixed bottom-1 right-1" v-if="diceRollResult !== null">
         <div class="stat relative">
             <button @click="closeDiceResult" 
                     class="btn btn-ghost btn-xs absolute top-1 right-1 w-6 h-6 min-h-6 p-0">
@@ -398,18 +385,16 @@ const compositeString = computed(() => {
     </div>
     
     <!-- Game Term Summary -->
-    <div class="bg-accent text-accent-content z-40 fixed bottom-1 left-1 right-1 p-4 rounded-lg shadow-lg" v-if="gameTermSummary !== null">
-        <div class="flex justify-between items-start">
-            <div class="flex-1">
-                <h3 class="font-bold text-lg">{{ gameTermSummary.term }}</h3>
-                <p class="text-sm mt-1">{{ gameTermSummary.description }}</p>
-            </div>
-            <button @click="hideGameTermSummary" class="btn btn-sm btn-ghost btn-square ml-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
+    <div class="alert alert-info alert-soft z-40 fixed bottom-1 left-1 right-1 shadow-lg !flex !flex-row !justify-between !items-start" v-if="gameTermSummary !== null">
+        <div class="flex-1 min-w-0">
+            <h3 class="font-bold text-lg">{{ gameTermSummary.term }}</h3>
+            <p class="text-sm mt-1">{{ gameTermSummary.description }}</p>
         </div>
+        <button @click="hideGameTermSummary" class="btn btn-sm btn-ghost btn-square ml-4 flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
     </div>
     <dialog v-if="playerSelection" id="my_modal_2" class="modal" ref="myModal">
         <div class="modal-box">
@@ -424,12 +409,51 @@ const compositeString = computed(() => {
             <button>close</button>
         </form>
     </dialog>
-    <div class="drawer drawer-end overflow-x-hidden">
-        <input id="my-drawer-1" type="checkbox" class="drawer-toggle" /> 
-        <div class="drawer-content flex flex-col overflow-x-hidden h-screen">
-            <div class="navbar bg-base-300 flex-shrink-0">
-                <div  class="flex-1 justify-start">
-                    <div v-if="selectedMonster" class="dropdown dropdown-begin z-50" v-on-click-outside="clearInput">
+    
+    <!-- Settings Modal -->
+    <dialog ref="settingsModal" class="modal">
+        <div class="modal-box w-96 max-w-md">
+            <h3 class="font-bold text-lg mb-4">Settings</h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="font-bold">Choose New or Existing Bestiary</p>
+                    <input type="text" placeholder="Enter bestiary name" v-model="bestiaryName" class="input input-bordered input-sm w-full mt-2" />
+                    <select v-model="selectedSource" class="select select-bordered select-sm w-full mt-2">
+                        <option value="">Select existing source</option>
+                        <option v-for="source in availableSources" :key="source" :value="source">{{ source }}</option>
+                    </select>
+                </div>
+                <div>
+                    <p class="font-bold">Load from Nimble.Monster URL</p>
+                    <input type="url" placeholder="https://nimble.monster/m/..." v-model="jsonUrl" class="input input-bordered input-sm w-full mt-2" />
+                </div>
+                <div>
+                    <p class="font-bold">Or Upload Nimbrew JSON Monster file</p>
+                    <input type="file" multiple ref="fileInput" class="file-input file-input-bordered file-input-sm w-full mt-2" />
+                    <button @click="saveJson" :disabled="isLoading" class="btn btn-primary w-full mt-2">
+                        <span v-if="isLoading" class="loading loading-spinner loading-sm"></span>
+                        {{ isLoading ? 'Loading...' : 'Load Monsters' }}
+                    </button>
+                </div>
+                <div class="pt-4 border-t">
+                    <button @click="deleteData" class="btn btn-error w-full">Delete all data</button>
+                </div>
+            </div>
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn">Close</button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+    
+    <div class="flex flex-col h-screen">
+        <div class="navbar bg-base-300 flex-shrink-0">
+            <div class="flex-1 justify-start">
+                <div v-if="selectedMonster" class="dropdown dropdown-begin z-50" v-on-click-outside="clearInput">
                         <input tabindex="0" type="search" class="input m-1" :placeholder="selectedMonster.name"
                             v-model="searchInput" @focus="$event.target.select()">
                         <ul tabindex="0"
@@ -455,49 +479,22 @@ const compositeString = computed(() => {
                         <a v-if="playerSelection.metadata[`${ID}/monstersheet`]">Update Token</a>
                         <a v-else>Link Token</a>
                     </button>
-                    <label for="my-drawer-1" class="drawer-button btn btn-square btn-ghost">
+                    <button @click="settingsModal.showModal()" class="btn btn-square btn-ghost">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                             class="inline-block w-5 h-5 stroke-current">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
-                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
-                    </label>
+                    </button>
                 </div>
             </div>
-            <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1" :class="{ 'pb-32': diceRollResult !== null }">
+            <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1" :class="{ 'pb-32': diceRollResult !== null || gameTermSummary !== null }">
                 <HeaderComponent :monster="selectedMonster" @rollDiceHeader="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
                 <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
                 <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
                 <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
             </div>
         </div>
-        <div class="drawer-side">
-            <label for="my-drawer-1" aria-label="close sidebar" class="drawer-overlay"></label>
-            <div class="menu p-4 w-80 min-h-full bg-base-200 text-base-content flex flex-col">
-                <!-- Sidebar content here -->
-                <div class="flex-grow space-y-2">
-                    <p class="font-bold">Choose New or Existing Bestiary</p>
-                    <input type="text" placeholder="Enter bestiary name" v-model="bestiaryName" class="input input-bordered input-sm w-full max-w-xs" />
-                    <select v-model="selectedSource" class="select select-bordered select-sm w-full max-w-xs">
-                        <option value="">Select existing source</option>
-                        <option v-for="source in availableSources" :key="source" :value="source">{{ source }}</option>
-                    </select>
-                    <p class="font-bold">Load from Nimble.Monster URL</p>
-                    <input type="url" placeholder="https://nimble.monster/m/..." v-model="jsonUrl" class="input input-bordered input-sm w-full max-w-xs" />
-                    <p class="font-bold">Or Upload Nimbrew JSON Monster file</p>
-                    <input type="file" multiple ref="fileInput" class="file-input file-input-bordered file-input-sm w-full max-w-xs" />
-                    <button @click="saveJson" :disabled="isLoading" class="btn btn-primary w-full">
-                        <span v-if="isLoading" class="loading loading-spinner loading-sm"></span>
-                        {{ isLoading ? 'Loading...' : 'Load Monsters' }}
-                    </button>
-                </div>
-                <!-- Delete button at the bottom -->
-                <div class="mt-4">
-                    <button @click="deleteData" class="btn btn-error w-full">Delete all data</button>
-                </div>
-            </div> 
-        </div>
-    </div>
     
     <!-- Global Context Menu -->
     <GlobalRollContextMenu />
@@ -506,3 +503,4 @@ const compositeString = computed(() => {
 
 <style scoped>
 </style>
+

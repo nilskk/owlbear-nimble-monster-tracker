@@ -2,6 +2,7 @@
 import { onMounted } from 'vue';
 import { parseText, parseSaves } from '../parseFunctions';
 import { useRollButtonListeners } from '../composables/useRollButtonListeners.js';
+import { useGlobalContextMenu } from '../composables/useGlobalContextMenu.js';
 
 const props = defineProps({
     monster: Object
@@ -9,12 +10,19 @@ const props = defineProps({
 
 const emit = defineEmits(['rollDiceHeader'])
 
+const { show } = useGlobalContextMenu();
+
 onMounted(async () => {
     await useRollButtonListeners(emit, 'rollDiceHeader');
 });
 
 const rollD20 = () => {
     emit('rollDiceHeader', '1d20', 'normal', 1, false); // Save rolls without crit
+};
+
+const rollD20RightClick = (event) => {
+    event.preventDefault();
+    show(event, '1d20', emit, 'rollDiceHeader', false); // Save rolls default to no crit
 };
 
 </script>
@@ -49,7 +57,7 @@ const rollD20 = () => {
             
             <!-- Saves -->
             <div class="flex items-center space-x-2" v-if="props.monster.saves">
-                <button @click="rollD20" class="btn btn-ghost btn-sm p-1 text-lg hover:bg-base-300">🎲</button>
+                <button @click="rollD20" @contextmenu="rollD20RightClick" class="btn btn-ghost btn-sm p-1 text-lg hover:bg-base-300">🎲</button>
                 <span class="text-lg font-bold" v-html="parseSaves(props.monster.saves)"></span>
             </div>
         </div>

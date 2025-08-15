@@ -51,6 +51,34 @@ export async function useRollButtonListeners(emit, eventName = 'rollDice') {
         }
     };
 
+    const handleSaveButtonRightClick = (event) => {
+        event.preventDefault();
+        const saveText = event.target.innerText;
+        
+        // Parse the save text to get the base dice notation and advantage/disadvantage
+        const match = saveText.match(/^([\w\/]+)([+\-]+)(\d*)$/);
+        if (match) {
+            const [, statName, signs, modifier] = match;
+            const plusCount = (signs.match(/\+/g) || []).length;
+            const minusCount = (signs.match(/\-/g) || []).length;
+            
+            // Calculate the mode index for the context menu
+            let modeIndex = 0;
+            if (plusCount > minusCount) {
+                modeIndex = plusCount - minusCount; // Positive for advantage
+            } else if (minusCount > plusCount) {
+                modeIndex = -(minusCount - plusCount); // Negative for disadvantage
+            }
+            
+            // Always use 1d20 for saves, with the parsed modifier
+            const diceNotation = modifier ? `1d20+${modifier}` : "1d20";
+            show(event, diceNotation, emit, eventName, false, modeIndex); // Save rolls default to no crit, with parsed mode
+        } else {
+            // Fallback: show context menu for 1d20
+            show(event, "1d20", emit, eventName, false, 0); // Save rolls default to no crit, normal mode
+        }
+    };
+
     // Handle regular roll buttons
     const buttons = document.getElementsByClassName('rollButton');
     Array.from(buttons).forEach(button => {
@@ -86,10 +114,12 @@ export async function useRollButtonListeners(emit, eventName = 'rollDice') {
         // Store new handlers
         const handlers = {
             click: handleSaveButtonClick,
+            contextmenu: handleSaveButtonRightClick
         };
         buttonHandlers.set(button, handlers);
         
         // Add new listeners
         button.addEventListener('click', handleSaveButtonClick);
+        button.addEventListener('contextmenu', handleSaveButtonRightClick);
     });
 }

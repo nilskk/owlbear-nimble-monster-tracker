@@ -10,18 +10,42 @@ const currentEventName = ref('rollDice')
 const critEnabled = ref(true) // Add crit state with default true
 
 export const useGlobalContextMenu = () => {
-  const show = (event, text, emitFn, eventName) => {
+  const show = (event, text, emitFn, eventName, defaultCrit = true, initialModeIndex = 0) => {
     // Close any existing menu first
     isVisible.value = false
     
     // Set new values
     rollText.value = text
-    currentModeIndex.value = 0
-    critEnabled.value = true // Reset crit to enabled when showing menu
+    currentModeIndex.value = initialModeIndex // Use the provided initial mode index
+    critEnabled.value = defaultCrit // Use the provided default crit value
     currentEmitFunction.value = emitFn
     currentEventName.value = eventName
-    position.x = event.pageX
-    position.y = event.pageY
+    
+    // Calculate position with boundary checking
+    const menuWidth = 192 // w-48 = 192px
+    const menuHeight = 120 // Approximate height for the menu
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    
+    let x = event.pageX
+    let y = event.pageY
+    
+    // Check right boundary
+    if (x + menuWidth > viewportWidth) {
+      x = viewportWidth - menuWidth - 10 // 10px padding from edge
+    }
+    
+    // Check bottom boundary
+    if (y + menuHeight > viewportHeight) {
+      y = viewportHeight - menuHeight - 10 // 10px padding from edge
+    }
+    
+    // Ensure minimum distance from edges
+    x = Math.max(10, x) // At least 10px from left edge
+    y = Math.max(10, y) // At least 10px from top edge
+    
+    position.x = x
+    position.y = y
     
     // Show with small delay to ensure clean state
     setTimeout(() => {

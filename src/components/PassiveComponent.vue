@@ -19,8 +19,8 @@ onUpdated(attachListeners);
 </script>
 
 <template>
-    <div v-if="props.monster.passives" class="divider divider-accent font-bold mb-0">Passives</div>
-    <div v-if="props.monster.passives" class="px-2 pt-2 space-y-2">
+    <div v-if="props.monster.passives && props.monster.passives.length > 0" class="divider divider-accent font-bold mb-0">Passives</div>
+    <div v-if="props.monster.passives && props.monster.passives.length > 0" class="px-2 pt-2 space-y-2">
         <!-- Passives -->
         <div v-for="passiveGroup in props.monster.passives" :key="passiveGroup.name" class="w-full break-words space-y-2">
             <div v-if="passiveGroup.type === 'multi'" class="space-y-2">

@@ -1,7 +1,7 @@
 {
   "name": "owlbear-nimble-monster-tracker",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.0",
   "homepage": "https://nilskk.github.io/owlbear-nimble-monster-tracker",
   "type": "module",
   "scripts": {
@@ -12,26 +12,19 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
-    "@owlbear-rodeo/sdk": "^2.3.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "@vueuse/components": "^10.8.0",
-    "@vueuse/core": "^10.8.0",
-    "@vueuse/rxjs": "^10.9.0",
-    "dexie": "^3.2.5",
-    "lodash": "^4.17.21",
-    "rxjs": "^7.8.1",
-    "vue": "^3.4.19",
-    "dddice-js": "^0.19.27",
     "@dice-roller/rpg-dice-roller": "^5.5.1",
-    "@dice-roller/vue": "1.2.1"
+    "@owlbear-rodeo/sdk": "^3.1.0",
+    "@tailwindcss/postcss": "^4.1.12",
+    "@tailwindcss/vite": "^4.1.12",
+    "@vueuse/components": "^13.6.0",
+    "dexie": "^4.0.11",
+    "vue": "^3.5.18"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.4",
-    "autoprefixer": "^10.4.17",
-    "daisyui": "^4.7.2",
-    "gh-pages": "^6.1.1",
-    "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1",
-    "vite": "^5.1.4"
+    "@vitejs/plugin-vue": "^6.0.1",
+    "daisyui": "^5.0.50",
+    "gh-pages": "^6.3.0",
+    "tailwindcss": "^4.1.12",
+    "vite": "^7.1.2"
   }
 }
