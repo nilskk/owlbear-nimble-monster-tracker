@@ -26,7 +26,12 @@ const bestiaryName = ref('');
 const selectedSource = ref('');
 const jsonUrl = ref('');
 const isLoading = ref(false);
-const gameTermSummary = ref(null);
+const lastDiceRolls = ref([]); // Array to store last 3 rolls with monster info
+const lastGameTerm = ref(null);
+const activeTab = ref(null); // 'rolls' or 'condition' or null
+const currentSlide = ref(1); // Track current slide (1-based to match slide IDs)
+const expandedRolls = ref(new Set()); // Track which rolls are expanded
+const hoverTooltip = ref({ visible: false, term: '', description: '', x: 0, y: 0 }); // Tooltip state
 
 
 onMounted(async () => {
@@ -38,41 +43,155 @@ onMounted(async () => {
 
 
 const setupGameTermListeners = () => {
-    // Use event delegation to handle clicks on dynamically added game terms
-    document.addEventListener('click', (event) => {
+    // Use event delegation to handle hover events on dynamically added game terms
+    document.addEventListener('mouseenter', (event) => {
         if (event.target.classList.contains('game-term')) {
             const term = event.target.getAttribute('data-term');
             const description = event.target.getAttribute('data-description');
-            showGameTermSummary(term, description);
+            showGameTermTooltip(event, term, description);
         }
-    });
+    }, true); // Use capture phase for better event handling
+    
+    document.addEventListener('mouseleave', (event) => {
+        if (event.target.classList.contains('game-term')) {
+            hideGameTermTooltip();
+        }
+    }, true);
 };
 
 
 const showGameTermSummary = (term, description) => {
-    gameTermSummary.value = { term, description };
+    lastGameTerm.value = { term, description };
+    // Automatically open the condition tab
+    activeTab.value = 'condition';
+};
+
+const showGameTermTooltip = (event, term, description) => {
+    const rect = event.target.getBoundingClientRect();
+    const tooltipWidth = 300; // Estimated tooltip width
+    const tooltipHeight = 100; // Estimated tooltip height
+    const padding = 10; // Padding from viewport edges
+    
+    let x = rect.left + (rect.width / 2); // Center horizontally on the element
+    let y = rect.bottom + 5; // Position below the element
+    
+    // Check right boundary
+    if (x + tooltipWidth / 2 > window.innerWidth - padding) {
+        x = window.innerWidth - tooltipWidth / 2 - padding;
+    }
+    
+    // Check left boundary
+    if (x - tooltipWidth / 2 < padding) {
+        x = tooltipWidth / 2 + padding;
+    }
+    
+    // Check bottom boundary - if tooltip would go off screen, show above the element
+    if (y + tooltipHeight > window.innerHeight - padding) {
+        y = rect.top - tooltipHeight - 5; // Position above the element
+    }
+    
+    // Final check if still off top of screen
+    if (y < padding) {
+        y = padding;
+    }
+    
+    hoverTooltip.value = {
+        visible: true,
+        term,
+        description,
+        x: x - tooltipWidth / 2, // Adjust for centering
+        y
+    };
+};
+
+const hideGameTermTooltip = () => {
+    hoverTooltip.value.visible = false;
 };
 
 
-const hideGameTermSummary = () => {
-    gameTermSummary.value = null;
+const addRollToHistory = (rollResult, monster) => {
+    const rollWithMonster = {
+        ...rollResult,
+        monster: { name: monster.name, id: monster.name } // Store monster info
+    };
+    
+    // Add to beginning of array and keep only last 3
+    lastDiceRolls.value.unshift(rollWithMonster);
+    if (lastDiceRolls.value.length > 3) {
+        lastDiceRolls.value = lastDiceRolls.value.slice(0, 3);
+    }
+    // Reset to first slide when new roll is added
+    currentSlide.value = 1;
 };
 
+const navigateToSlide = (slideNumber) => {
+    currentSlide.value = slideNumber;
+    // Navigate using the carousel's URL fragment method
+    window.location.hash = `slide${slideNumber}`;
+};
 
-const closeDiceResult = () => {
-    diceRollResult.value = null;
+const moveRollToTop = (rollIndex) => {
+    // Move the clicked roll to the top of the array
+    const selectedRoll = lastDiceRolls.value.splice(rollIndex, 1)[0];
+    lastDiceRolls.value.unshift(selectedRoll);
+};
+
+const toggleRollExpansion = (rollIndex) => {
+    const rollId = `roll-${rollIndex}`;
+    if (expandedRolls.value.has(rollId)) {
+        expandedRolls.value.delete(rollId);
+    } else {
+        expandedRolls.value.add(rollId);
+    }
+    // Force reactivity
+    expandedRolls.value = new Set(expandedRolls.value);
+};
+
+const isRollExpanded = (rollIndex) => {
+    return expandedRolls.value.has(`roll-${rollIndex}`);
+};
+
+const toggleLastRoll = () => {
+    if (activeTab.value === 'rolls') {
+        // Currently showing rolls, so hide all
+        activeTab.value = null;
+    } else if (lastDiceRolls.value.length > 0) {
+        // Show rolls tab
+        activeTab.value = 'rolls';
+    }
+};
+
+const toggleLastCondition = () => {
+    if (activeTab.value === 'condition') {
+        // Currently showing condition, so hide all
+        activeTab.value = null;
+    } else if (lastGameTerm.value) {
+        // Show condition tab
+        activeTab.value = 'condition';
+    }
 };
 
 const rollDice = (value, rollMode, count = 1, crit = true) => {
-    // Close any existing dice result when starting a new roll
+    // Clear any existing dice result when starting a new roll
     diceRollResult.value = null;
     
     diceRollResult.value = rollDiceWithDiceRoller(value, rollMode, count, crit);
+    // Add roll to history with current monster info
+    if (selectedMonster.value) {
+        addRollToHistory(diceRollResult.value, selectedMonster.value);
+    }
+    // Automatically open the rolls tab
+    activeTab.value = 'rolls';
 };
 
 
 const selectMonster = (monster) => {
     selectedMonster.value = monster;
+    // Auto-close all tabs when switching monsters
+    activeTab.value = null;
+    diceRollResult.value = null;
+    // Keep roll history across monsters (now stores monster info with each roll)
+    // Keep lastGameTerm across monsters (conditions are general game mechanics)
 };
 
 
@@ -338,64 +457,25 @@ const confirmTokenUpdate = () => {
 };
 
 
-const compositeString = computed(() => {
-    if (!selectedMonster.value || !diceRollResult.value) return '';
-    let rollText = `${selectedMonster.value.name} rolls ${diceRollResult.value.originalNotation}`;
-    if (diceRollResult.value.rollMode !== 'normal') {
-        rollText += ` (${diceRollResult.value.rollMode === 'advantage' ? 'ADV' : 'DIS'} ${diceRollResult.value.count})`;
-    }
-    return rollText;
+const rollTabText = computed(() => {
+    return 'Rolls';
 });
+
+const conditionTabText = computed(() => {
+    return 'Condition';
+});
+
+const formatRollNotation = (roll) => {
+    let notation = roll.originalNotation;
+    if (roll.rollMode !== 'normal') {
+        notation += ` (${roll.rollMode === 'advantage' ? 'ADV' : 'DIS'} ${roll.count})`;
+    }
+    return notation;
+};
 </script>
 
 
 <template>
-    <div class="stats bg-base-300 z-50 fixed bottom-1 right-1" v-if="diceRollResult !== null">
-        <div class="stat relative">
-            <button @click="closeDiceResult" 
-                    class="btn btn-ghost btn-xs absolute top-1 right-1 w-6 h-6 min-h-6 p-0">
-                ✕
-            </button>
-            <div class="stat-title">{{ compositeString }}</div>
-            <div class="stat-value text-primary text-4xl">{{ diceRollResult.total }}</div>
-            <!-- Divider line between total and breakdown -->
-            <div class="divider my-2 h-px bg-base-content opacity-20"></div>
-            <div class="stat-desc text-base">
-                <div class="flex flex-wrap gap-1 items-center">
-                    <template v-for="(die, index) in diceRollResult.dice" :key="index">
-                        <span 
-                            :class="{
-                                'line-through opacity-50': die.isDropped,
-                                'text-red-400': die.isPrimary && die.isMinValue && !die.isDropped,
-                                'text-green-400': (die.isPrimary && die.isMaxValue && !die.isDropped) || (die.isExploding && die.isMaxValue),
-                            }"
-                            class="inline-block transition-all"
-                        >
-                            <span 
-                                :class="{
-                                    'text-lg border-2 border-current px-1 rounded': die.isPrimary
-                                }"
-                            >{{ die.value }}</span><span v-if="die.isExploding && die.isMaxValue">💥</span>
-                        </span><span v-if="index < diceRollResult.dice.length - 1" class="text-base-content">,</span>
-                    </template>
-                    <span v-if="diceRollResult.modifier" class="ml-1 text-base-content">{{ diceRollResult.modifier }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Game Term Summary -->
-    <div class="alert alert-info alert-soft z-40 fixed bottom-1 left-1 right-1 shadow-lg !flex !flex-row !justify-between !items-start" v-if="gameTermSummary !== null">
-        <div class="flex-1 min-w-0">
-            <h3 class="font-bold text-lg">{{ gameTermSummary.term }}</h3>
-            <p class="text-sm mt-1">{{ gameTermSummary.description }}</p>
-        </div>
-        <button @click="hideGameTermSummary" class="btn btn-sm btn-ghost btn-square ml-4 flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-    </div>
     <dialog v-if="playerSelection" id="my_modal_2" class="modal" ref="myModal">
         <div class="modal-box">
             <div class="flex flex-col justify-center space-y-3">
@@ -488,13 +568,119 @@ const compositeString = computed(() => {
                     </button>
                 </div>
             </div>
-            <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1 pb-40">
+            <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1">
                 <HeaderComponent :monster="selectedMonster" @rollDiceHeader="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
                 <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
                 <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
                 <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
             </div>
+            
+            <!-- Round D20 Toggle Button -->
+            <div class="absolute bottom-8 right-8 z-20">
+                <button @click="toggleLastRoll" 
+                        class="btn btn-circle btn-lg btn-primary shadow-lg hover:shadow-xl transition-all"
+                        :class="{ 'btn-active': activeTab === 'rolls' }">
+                    <!-- D20 Icosahedron SVG from dice CSS -->
+                    <svg width="28" height="31" viewBox="0 0 28 31" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6">
+                        <path d="M14 0L0 7.5V22.7L14 30.2L27 23.2L28 22.6V7.5L14 0ZM12 8.3L6.1 17.1L2.4 9.1L12 8.3ZM8 18L14 8.9L20 18H8ZM21.8 17.1L16 8.3L25.5 9L21.8 17.1ZM15 2.8L22.4 6.8L15 6.2V2.8ZM13 2.8V6.2L5.6 6.8L13 2.8ZM2 12.8L4.7 18.8L2 20.4V12.8ZM3 22.1L5.7 20.5L10.1 26L3 22.1ZM8 20H19L14 27.5L8 20ZM17.9 25.9L22.3 20.4L25 22L17.9 25.9ZM23.5 18.9L23.3 18.8L26 12.8V20.4L23.5 18.9Z" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Dice Roll Result (Floating Window) -->
+            <div class="absolute bottom-24 right-8 z-10" v-if="activeTab === 'rolls'">
+                <!-- Roll History Stack -->
+                <div class="space-y-2">
+                    <!-- Previous Rolls - Compact Display (Oldest to Newest) -->
+                    <div v-for="(roll, index) in lastDiceRolls.slice(1).reverse()" 
+                         :key="`compact-${index}`"
+                         class="bg-base-300 shadow-lg rounded-lg w-90 opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
+                         @click="toggleRollExpansion(lastDiceRolls.length - 1 - index)">
+                        
+                        <!-- Compact View -->
+                        <div v-if="!isRollExpanded(lastDiceRolls.length - 1 - index)" class="px-4 py-2 flex items-center justify-between">
+                            <div class="text-sm">
+                                <div class="text-xs opacity-70">{{ roll.monster?.name?.toUpperCase() || 'UNKNOWN' }}: {{ formatRollNotation(roll).toUpperCase() }}</div>
+                            </div>
+                            <div class="text-xl font-bold text-primary">{{ roll.total }}</div>
+                        </div>
+                        
+                        <!-- Expanded View -->
+                        <div v-else class="p-4">
+                            <div class="text-xs opacity-70 mb-1">{{ roll.monster?.name || 'Unknown' }}</div>
+                            <div class="flex items-center justify-start gap-3">
+                                <span class="text-primary text-3xl font-bold">{{ roll.total }}</span>
+                                <span class="opacity-50 border-2 px-1 rounded">{{ formatRollNotation(roll) }}</span>
+                            </div>
+                            <!-- Divider line between total and breakdown -->
+                            <div class="divider my-2 h-px bg-base-content opacity-20"></div>
+                            <div class="text-base">
+                                <div class="flex flex-wrap gap-1 items-center">
+                                    <template v-for="(die, dieIndex) in roll.dice" :key="dieIndex">
+                                        <span 
+                                            :class="{
+                                                'line-through opacity-50': die.isDropped,
+                                                'text-red-400': die.isPrimary && die.isMinValue && !die.isDropped,
+                                                'text-green-400': (die.isPrimary && die.isMaxValue && !die.isDropped) || (die.isExploding && die.isMaxValue),
+                                            }"
+                                            class="inline-block transition-all"
+                                        >
+                                            <span 
+                                                :class="{
+                                                    'text-lg border-2 border-current px-1 rounded': die.isPrimary
+                                                }"
+                                            >{{ die.value }}</span><span v-if="die.isExploding && die.isMaxValue">💥</span>
+                                        </span><span v-if="dieIndex < roll.dice.length - 1" class="text-base-content">,</span>
+                                    </template>
+                                    <span v-if="roll.modifier" class="ml-1 text-base-content">{{ roll.modifier }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Latest Roll - Full Display (At Bottom) -->
+                    <div v-if="lastDiceRolls.length > 0" class="bg-base-300 shadow-lg rounded-lg w-90">
+                        <div class="p-4">
+                            <div class="text-xs opacity-70 mb-1">{{ lastDiceRolls[0].monster?.name || 'Unknown' }}</div>
+                            <div class="flex items-center justify-start gap-3">
+                                <span class="text-primary text-3xl font-bold">{{ lastDiceRolls[0].total }}</span>
+                                <span class="opacity-50 border-2 px-1 rounded">{{ formatRollNotation(lastDiceRolls[0]) }}</span>
+                            </div>
+                            <!-- Divider line between total and breakdown -->
+                            <div class="divider my-2 h-px bg-base-content opacity-20"></div>
+                            <div class="text-base">
+                                <div class="flex flex-wrap gap-1 items-center">
+                                    <template v-for="(die, dieIndex) in lastDiceRolls[0].dice" :key="dieIndex">
+                                        <span 
+                                            :class="{
+                                                'line-through opacity-50': die.isDropped,
+                                                'text-red-400': die.isPrimary && die.isMinValue && !die.isDropped,
+                                                'text-green-400': (die.isPrimary && die.isMaxValue && !die.isDropped) || (die.isExploding && die.isMaxValue),
+                                            }"
+                                            class="inline-block transition-all"
+                                        >
+                                            <span 
+                                                :class="{
+                                                    'text-lg border-2 border-current px-1 rounded': die.isPrimary
+                                                }"
+                                            >{{ die.value }}</span><span v-if="die.isExploding && die.isMaxValue">💥</span>
+                                        </span><span v-if="dieIndex < lastDiceRolls[0].dice.length - 1" class="text-base-content">,</span>
+                                    </template>
+                                    <span v-if="lastDiceRolls[0].modifier" class="ml-1 text-base-content">{{ lastDiceRolls[0].modifier }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+    
+    <!-- Hover Tooltip for Game Terms -->
+    <div v-if="hoverTooltip.visible" 
+         class="fixed z-50 alert alert-info alert-soft shadow-lg p-3 max-w-xs pointer-events-none"
+         :style="{ left: hoverTooltip.x + 'px', top: hoverTooltip.y + 'px' }">
+        <p class="text-sm leading-relaxed">{{ hoverTooltip.description }}</p>
+    </div>
     
     <!-- Global Context Menu -->
     <GlobalRollContextMenu />

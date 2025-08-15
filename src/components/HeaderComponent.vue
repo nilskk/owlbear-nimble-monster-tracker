@@ -32,7 +32,7 @@ const rollD20RightClick = (event) => {
         <!-- Monster Name and Challenge Rating -->
         <div class="flex justify-between items-center mb-3">
             <h2 class="text-xl font-bold">{{ props.monster.name }}</h2>
-            <span class="badge badge-primary font-bold">{{ props.monster.CR }}</span>
+            <span class="badge badge-primary badge-soft font-bold">{{ props.monster.CR }}</span>
         </div>
         
         <!-- Stats Grid -->
@@ -56,9 +56,9 @@ const rollD20RightClick = (event) => {
             </div>
             
             <!-- Saves -->
-            <div class="flex items-center space-x-2" v-if="props.monster.saves">
+            <div class="flex items-center space-x-2">
                 <button @click="rollD20" @contextmenu="rollD20RightClick" class="btn btn-ghost btn-sm p-1 text-lg hover:bg-base-300">🎲</button>
-                <span class="text-lg font-bold" v-html="parseSaves(props.monster.saves)"></span>
+                <span class="text-lg font-bold" v-html="props.monster.saves ? parseSaves(props.monster.saves) : '-'"></span>
             </div>
         </div>
     </div>
