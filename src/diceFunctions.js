@@ -1,6 +1,6 @@
 import { DiceRoll } from '@dice-roller/rpg-dice-roller';
 
-function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1) {
+function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1, crit=true) {
     const originalDiceString = diceString; // Store the original notation
     
     // Extract dice type and modifier from ORIGINAL string (before conversion)
@@ -26,7 +26,7 @@ function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1) {
         diceList = rollResults.map(result => {
             const isMaxValue = result.value === diceType;
             const isPrimary = firstNonDroppedDie && result === firstNonDroppedDie;
-            const isExploding = isPrimary && isMaxValue; // Mark primary die as exploding if it's max value
+            const isExploding = isPrimary && isMaxValue && crit; // Mark primary die as exploding if it's max value and crit is enabled
             
             return {
                 value: result.value,
@@ -40,7 +40,7 @@ function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1) {
     }
 
     // Check if we need to add exploding dice for the first non-dropped die
-    if (firstNonDroppedDie && firstNonDroppedDie.calculationValue === diceType) {
+    if (crit && firstNonDroppedDie && firstNonDroppedDie.calculationValue === diceType) {
         const explodingRoll = new DiceRoll(`1d${diceType}!`);
         const explodingResults = explodingRoll.rolls[0] ? explodingRoll.rolls[0].rolls : [];
         

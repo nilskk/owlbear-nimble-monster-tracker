@@ -7,6 +7,20 @@
       :style="{ left: position.x + 'px', top: position.y + 'px' }"
       @click.stop
     >
+      <!-- Crit checkbox -->
+      <div class="px-3 py-2 border-b border-base-300">
+        <label class="flex items-center cursor-pointer">
+          <input 
+            type="checkbox" 
+            v-model="critEnabled" 
+            class="checkbox checkbox-sm mr-2"
+            @click.stop
+          />
+          <span class="text-sm font-medium">Roll with Crit?</span>
+        </label>
+      </div>
+      
+      <!-- Advantage/Disadvantage selector -->
       <div class="px-2 py-2 flex items-center justify-between">
         <button @click.stop="moveLeft" 
                 class="btn btn-xs btn-ghost w-8 h-8 min-h-8 p-0 flex-shrink-0">
@@ -32,7 +46,8 @@ import { useGlobalContextMenu } from '../composables/useGlobalContextMenu.js'
 const { 
   isVisible, 
   position, 
-  currentModeIndex, 
+  currentModeIndex,
+  critEnabled,
   close, 
   executeRoll 
 } = useGlobalContextMenu()

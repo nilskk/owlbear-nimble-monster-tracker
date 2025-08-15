@@ -44,10 +44,10 @@ export async function useRollButtonListeners(emit, eventName = 'rollDice') {
             
             // Always roll 1d20 for saves, with the parsed modifier
             const diceNotation = modifier ? `1d20+${modifier}` : "1d20";
-            emit(eventName, diceNotation, rollMode, count);
+            emit(eventName, diceNotation, rollMode, count, false); // Save rolls without crit
         } else {
             // Fallback: just roll 1d20
-            emit(eventName, "1d20", "normal");
+            emit(eventName, "1d20", "normal", 1, false); // Save rolls without crit
         }
     };
 

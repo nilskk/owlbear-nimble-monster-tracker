@@ -76,11 +76,11 @@ const closeDiceResult = () => {
     diceRollResult.value = null;
 };
 
-const rollDice = (value, rollMode, count = 1) => {
+const rollDice = (value, rollMode, count = 1, crit = true) => {
     // Close any existing dice result when starting a new roll
     diceRollResult.value = null;
     
-    diceRollResult.value = rollDiceWithDiceRoller(value, rollMode, count);
+    diceRollResult.value = rollDiceWithDiceRoller(value, rollMode, count, crit);
 };
 
 
@@ -371,6 +371,8 @@ const compositeString = computed(() => {
             </button>
             <div class="stat-title">{{ compositeString }}</div>
             <div class="stat-value text-primary text-4xl">{{ diceRollResult.total }}</div>
+            <!-- Divider line between total and breakdown -->
+            <div class="divider my-2 h-px bg-base-content opacity-20"></div>
             <div class="stat-desc text-base">
                 <div class="flex flex-wrap gap-1 items-center">
                     <template v-for="(die, index) in diceRollResult.dice" :key="index">
@@ -463,10 +465,10 @@ const compositeString = computed(() => {
                 </div>
             </div>
             <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1" :class="{ 'pb-32': diceRollResult !== null }">
-                <HeaderComponent :monster="selectedMonster" @rollDiceHeader="(value, rollMode, count) => rollDice(value, rollMode, count)" />
-                <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count) => rollDice(value, rollMode, count)" />
-                <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count) => rollDice(value, rollMode, count)" />
-                <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count) => rollDice(value, rollMode, count)" />
+                <HeaderComponent :monster="selectedMonster" @rollDiceHeader="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
+                <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
+                <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
+                <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
             </div>
         </div>
         <div class="drawer-side">

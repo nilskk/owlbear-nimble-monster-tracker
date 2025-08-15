@@ -14,7 +14,7 @@ onMounted(async () => {
 });
 
 const rollD20 = () => {
-    emit('rollDiceHeader', '1d20', 'normal');
+    emit('rollDiceHeader', '1d20', 'normal', 1, false); // Save rolls without crit
 };
 
 </script>

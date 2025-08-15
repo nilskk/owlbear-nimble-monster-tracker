@@ -7,6 +7,7 @@ const rollText = ref('')
 const currentModeIndex = ref(0)
 const currentEmitFunction = ref(null)
 const currentEventName = ref('rollDice')
+const critEnabled = ref(true) // Add crit state with default true
 
 export const useGlobalContextMenu = () => {
   const show = (event, text, emitFn, eventName) => {
@@ -16,6 +17,7 @@ export const useGlobalContextMenu = () => {
     // Set new values
     rollText.value = text
     currentModeIndex.value = 0
+    critEnabled.value = true // Reset crit to enabled when showing menu
     currentEmitFunction.value = emitFn
     currentEventName.value = eventName
     position.x = event.pageX
@@ -38,8 +40,8 @@ export const useGlobalContextMenu = () => {
       const mode = currentModeIndex.value === 0 ? 'normal' : 
                    currentModeIndex.value > 0 ? 'advantage' : 'disadvantage'
       
-      // Pass the roll text, mode, and count to the emit function
-      currentEmitFunction.value(currentEventName.value, rollText.value, mode, count)
+      // Pass the roll text, mode, count, and crit flag to the emit function
+      currentEmitFunction.value(currentEventName.value, rollText.value, mode, count, critEnabled.value)
     }
     close()
   }
@@ -49,6 +51,7 @@ export const useGlobalContextMenu = () => {
     position,
     rollText,
     currentModeIndex,
+    critEnabled,
     show,
     close,
     executeRoll
