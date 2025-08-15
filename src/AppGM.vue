@@ -488,7 +488,7 @@ const compositeString = computed(() => {
                     </button>
                 </div>
             </div>
-            <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1" :class="{ 'pb-32': diceRollResult !== null || gameTermSummary !== null }">
+            <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1 pb-40">
                 <HeaderComponent :monster="selectedMonster" @rollDiceHeader="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
                 <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
                 <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
