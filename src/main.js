@@ -22,9 +22,10 @@ OBR.onReady(async() => {
     else {
         createApp(AppPlayer).mount('#app')
     }
-
-    
-
+}).catch(() => {
+    // Fallback for development/testing outside of OBR
+    console.log('OBR not available, defaulting to GM view for testing');
+    createApp(AppGM).mount('#app')
 });
 
 

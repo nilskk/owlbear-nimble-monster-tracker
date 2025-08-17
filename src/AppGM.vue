@@ -4,18 +4,22 @@ import ActionsComponent from './components/ActionsComponent.vue';
 import PassiveComponent from './components/PassiveComponent.vue';
 import LegendaryComponent from './components/LegendaryComponent.vue';
 import GlobalRollContextMenu from './components/GlobalRollContextMenu.vue';
+import UploadModal from './components/UploadModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import GameTermTooltip from './components/GameTermTooltip.vue';
 import NavbarComponent from './components/NavbarComponent.vue';
-import { ref, computed, onMounted } from 'vue'
+import DiceRollDisplay from './components/DiceRollDisplay.vue';
+import { ref, computed, onMounted, watch } from 'vue'
 import { db } from './db'
 import { rollDiceWithDiceRoller } from './diceFunctions';
+import { loadSettings, saveSettings } from './settingsFunctions';
 import OBR from '@owlbear-rodeo/sdk';
 
 
 const ID = 'com.nilskk.owlbear-nimble-token-tracker';
 
 const myModal = ref(null);
+const uploadModalRef = ref(null);
 const settingsModalRef = ref(null);
 const playerSelection = ref(null)
 const selectedMonster = ref(null);
@@ -23,28 +27,52 @@ const groupedBestiary = ref({});
 const diceRollResult = ref(null);
 const lastDiceRolls = ref([]); // Array to store last 3 rolls with monster info
 const diceRollsVisible = ref(false); // Simple visibility state for dice rolls
-const expandedRolls = ref(new Set()); // Track which rolls are expanded
-let rollVisibilityTimer = null; // Timer for auto-hiding rolls
 
+// Initialize settings with default values first
+const showRollsToPlayers = ref(false); // Will be updated after OBR is ready
 
 onMounted(async () => {
+    console.log('AppGM mounted, waiting for OBR...');
+    OBR.onReady(async () => {
+        console.log('OBR ready in GM view');
+        console.log('OBR.room available:', typeof OBR.room !== 'undefined');
+        
+        // Load settings from OBR room
+        try {
+            console.log('Loading settings...');
+            const settings = await loadSettings(OBR);
+            console.log('Settings loaded:', settings);
+            showRollsToPlayers.value = settings.showRollsToPlayers;
+            console.log('showRollsToPlayers set to:', showRollsToPlayers.value);
+        } catch (error) {
+            console.error('Failed to load settings:', error);
+        }
+    });  
     await refreshBestiary();
 });
 
-
-const showDiceRollsFor5Seconds = () => {
-    // Clear any existing timer
-    if (rollVisibilityTimer) {
-        clearTimeout(rollVisibilityTimer);
+// Watch for settings changes and save to OBR room
+watch(showRollsToPlayers, async (newValue) => {
+    console.log('Settings changed, saving to OBR room:', newValue);
+    // Save settings to OBR room
+    try {
+        await saveSettings(OBR, { showRollsToPlayers: newValue });
+        console.log('Settings saved successfully');
+    } catch (error) {
+        console.error('Failed to save settings:', error);
     }
     
+    // Broadcast to players via OBR
+    OBR.broadcast.sendMessage(`${ID}/settings`, {
+        showRollsToPlayers: newValue
+    });
+    console.log('Settings broadcast sent:', { showRollsToPlayers: newValue });
+});
+
+
+const showDiceRolls = () => {
     // Show dice rolls
     diceRollsVisible.value = true;
-    
-    // Hide after 5 seconds
-    rollVisibilityTimer = setTimeout(() => {
-        diceRollsVisible.value = false;
-    }, 5000);
 };
 
 
@@ -61,36 +89,13 @@ const addRollToHistory = (rollResult, monster) => {
     }
 };
 
-const toggleRollExpansion = (rollIndex) => {
-    const rollId = `roll-${rollIndex}`;
-    if (expandedRolls.value.has(rollId)) {
-        expandedRolls.value.delete(rollId);
-    } else {
-        expandedRolls.value.add(rollId);
-    }
-    // Force reactivity
-    expandedRolls.value = new Set(expandedRolls.value);
-};
-
-const isRollExpanded = (rollIndex) => {
-    return expandedRolls.value.has(`roll-${rollIndex}`);
-};
-
 const toggleDiceRolls = () => {
     if (diceRollsVisible.value) {
         // Currently showing rolls, so hide them
         diceRollsVisible.value = false;
-        // Clear any auto-hide timer
-        if (rollVisibilityTimer) {
-            clearTimeout(rollVisibilityTimer);
-        }
     } else if (lastDiceRolls.value.length > 0) {
         // Show rolls manually (no timer for manual toggle)
         diceRollsVisible.value = true;
-        // Clear any existing timer
-        if (rollVisibilityTimer) {
-            clearTimeout(rollVisibilityTimer);
-        }
     }
 };
 
@@ -99,12 +104,44 @@ const rollDice = (value, rollMode, count = 1, crit = true) => {
     diceRollResult.value = null;
     
     diceRollResult.value = rollDiceWithDiceRoller(value, rollMode, count, crit);
+    console.log('Dice roll result:', diceRollResult.value);
+    console.log('DiceList:', diceRollResult.value.diceList);
+    console.log('ExplodingDiceList:', diceRollResult.value.explodingDiceList);
+    console.log('Dice (from function):', diceRollResult.value.dice);
+    
     // Add roll to history with current monster info
     if (selectedMonster.value) {
         addRollToHistory(diceRollResult.value, selectedMonster.value);
+        
+        // Broadcast dice roll to players if setting is enabled
+        if (showRollsToPlayers.value) {
+            const serializableRoll = {
+                total: diceRollResult.value.total,
+                notation: diceRollResult.value.notation,
+                originalNotation: diceRollResult.value.originalNotation || diceRollResult.value.notation,
+                explodingNotation: diceRollResult.value.explodingNotation,
+                rollMode: rollMode,
+                count: count,
+                dice: diceRollResult.value.dice ? diceRollResult.value.dice.map(die => ({
+                    value: die.value,
+                    isDropped: die.isDropped || false,
+                    isPrimary: die.isPrimary || false,
+                    isMaxValue: die.isMaxValue || false,
+                    isMinValue: die.isMinValue || false,
+                    isExploding: die.isExploding || false
+                })) : [],
+                modifier: diceRollResult.value.modifier || '',
+                monster: { name: selectedMonster.value.name, id: selectedMonster.value.name }
+            };
+            OBR.broadcast.sendMessage(`${ID}/dice-roll`, {
+                showToPlayers: true,
+                roll: serializableRoll
+            });
+            console.log('Dice roll broadcast sent to players');
+        }
     }
-    // Show dice rolls for 5 seconds
-    showDiceRollsFor5Seconds();
+    // Show dice rolls
+    showDiceRolls();
 };
 
 
@@ -112,9 +149,6 @@ const selectMonster = (monster) => {
     selectedMonster.value = monster;
     // Auto-close dice rolls when switching monsters
     diceRollsVisible.value = false;
-    if (rollVisibilityTimer) {
-        clearTimeout(rollVisibilityTimer);
-    }
     diceRollResult.value = null;
     // Keep roll history across monsters (now stores monster info with each roll)
     // Keep lastGameTerm across monsters (conditions are general game mechanics)
@@ -175,10 +209,13 @@ const updateTokens = () => {
     myModal.value.showModal();
 };
 
+const openUpload = () => {
+    uploadModalRef.value?.showModal();
+};
+
 const openSettings = () => {
     settingsModalRef.value?.showModal();
 };
-
 
 const confirmTokenUpdate = () => {
     OBR.player.getSelection().then((itemIds) => {
@@ -195,15 +232,6 @@ const confirmTokenUpdate = () => {
         }
     });
     myModal.value.close();
-};
-
-
-const formatRollNotation = (roll) => {
-    let notation = roll.originalNotation;
-    if (roll.rollMode !== 'normal') {
-        notation += ` (${roll.rollMode === 'advantage' ? 'ADV' : 'DIS'} ${roll.count})`;
-    }
-    return notation;
 };
 </script>
 
@@ -231,6 +259,7 @@ const formatRollNotation = (roll) => {
             :ID="ID"
             @select-monster="selectMonster"
             @update-tokens="updateTokens"
+            @open-upload="openUpload"
             @open-settings="openSettings" />
 
         <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1">
@@ -252,101 +281,27 @@ const formatRollNotation = (roll) => {
             </button>
         </div>
         
-        <!-- Dice Roll Result (Floating Window) -->
-        <div class="absolute bottom-24 right-8 z-10" v-if="diceRollsVisible">
-            <!-- Roll History Stack -->
-            <div class="space-y-2 flex flex-col items-end">
-                <!-- Previous Rolls - Compact Display (Oldest to Newest) -->
-                <div v-for="(roll, index) in lastDiceRolls.slice(1).reverse()" 
-                     :key="`compact-${index}`"
-                     class="bg-base-300 shadow-lg rounded-lg cursor-pointer transition-all"
-                     :class="{ 'max-w-80': isRollExpanded(lastDiceRolls.length - 1 - index), 'w-auto': !isRollExpanded(lastDiceRolls.length - 1 - index) }"
-                     @click="toggleRollExpansion(lastDiceRolls.length - 1 - index)">
-                    
-                    <!-- Compact View -->
-                    <div v-if="!isRollExpanded(lastDiceRolls.length - 1 - index)" class="px-4 py-2 flex items-center justify-between">
-                        <div class="text-xl font-bold text-primary">{{ roll.total }}</div>
-                    </div>
-                    
-                    <!-- Expanded View -->
-                    <div v-else class="p-4">
-                        <div class="text-xs opacity-70 mb-1">{{ roll.monster?.name || 'Unknown' }}</div>
-                        <div class="flex items-center justify-start gap-3">
-                            <span class="text-primary text-3xl font-bold">{{ roll.total }}</span>
-                            <span class="opacity-50 border-2 px-1 rounded">{{ formatRollNotation(roll) }}</span>
-                        </div>
-                        <!-- Divider line between total and breakdown -->
-                        <div class="divider my-2 h-px bg-base-content opacity-20"></div>
-                        <div class="text-base">
-                            <div class="flex flex-wrap gap-1 items-center">
-                                <template v-for="(die, dieIndex) in roll.dice" :key="dieIndex">
-                                    <span 
-                                        :class="{
-                                            'line-through opacity-50': die.isDropped,
-                                            'text-red-400': die.isPrimary && die.isMinValue && !die.isDropped,
-                                            'text-green-400': (die.isPrimary && die.isMaxValue && !die.isDropped) || (die.isExploding && die.isMaxValue),
-                                        }"
-                                        class="inline-block transition-all"
-                                    >
-                                        <span 
-                                            :class="{
-                                                'text-lg border-2 border-current px-1 rounded': die.isPrimary
-                                            }"
-                                        >{{ die.value }}</span><span v-if="die.isExploding && die.isMaxValue">💥</span>
-                                    </span><span v-if="dieIndex < roll.dice.length - 1" class="text-base-content">,</span>
-                                </template>
-                                <span v-if="roll.modifier" class="ml-1 text-base-content">{{ roll.modifier }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Latest Roll - Full Display (At Bottom) -->
-                <div v-if="lastDiceRolls.length > 0" class="bg-base-300 shadow-lg rounded-lg max-w-80">
-                    <div class="p-4">
-                        <div class="text-xs opacity-70 mb-1">{{ lastDiceRolls[0].monster?.name || 'Unknown' }}</div>
-                        <div class="flex items-center justify-start gap-3">
-                            <span class="text-primary text-3xl font-bold">{{ lastDiceRolls[0].total }}</span>
-                            <span class="opacity-50 border-2 px-1 rounded">{{ formatRollNotation(lastDiceRolls[0]) }}</span>
-                        </div>
-                        <!-- Divider line between total and breakdown -->
-                        <div class="divider my-2 h-px bg-base-content opacity-20"></div>
-                        <div class="text-base">
-                            <div class="flex flex-wrap gap-1 items-center">
-                                <template v-for="(die, dieIndex) in lastDiceRolls[0].dice" :key="dieIndex">
-                                    <span 
-                                        :class="{
-                                            'line-through opacity-50': die.isDropped,
-                                            'text-red-400': die.isPrimary && die.isMinValue && !die.isDropped,
-                                            'text-green-400': (die.isPrimary && die.isMaxValue && !die.isDropped) || (die.isExploding && die.isMaxValue),
-                                        }"
-                                        class="inline-block transition-all"
-                                    >
-                                        <span 
-                                            :class="{
-                                                'text-lg border-2 border-current px-1 rounded': die.isPrimary
-                                            }"
-                                        >{{ die.value }}</span><span v-if="die.isExploding && die.isMaxValue">💥</span>
-                                    </span><span v-if="dieIndex < lastDiceRolls[0].dice.length - 1" class="text-base-content">,</span>
-                                </template>
-                                <span v-if="lastDiceRolls[0].modifier" class="ml-1 text-base-content">{{ lastDiceRolls[0].modifier }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Dice Roll Display Component -->
+        <DiceRollDisplay 
+            :dice-rolls-visible="diceRollsVisible"
+            :last-dice-rolls="lastDiceRolls"
+            :show-rolls-to-players="showRollsToPlayers" />
     </div>
     
     <!-- Game Term Tooltip Component -->
     <GameTermTooltip />
     
-    <!-- Settings Modal Component -->
-    <SettingsModal 
-        ref="settingsModalRef"
+    <!-- Upload Modal Component -->
+    <UploadModal 
+        ref="uploadModalRef"
         :grouped-bestiary="groupedBestiary"
         @refresh-bestiary="refreshBestiary" />
-    
+
+    <SettingsModal 
+        ref="settingsModalRef" 
+        :show-rolls-to-players="showRollsToPlayers"
+        @update:showRollsToPlayers="showRollsToPlayers = $event" />
+
     <!-- Global Context Menu -->
     <GlobalRollContextMenu />
 </template>
