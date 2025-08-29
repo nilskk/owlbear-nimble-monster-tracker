@@ -6,7 +6,7 @@
             <div class="space-y-4">
                 <div>
                     <p class="font-bold">Choose New or Existing Bestiary</p>
-                    <input type="text" placeholder="Enter bestiary name" v-model="bestiaryName" class="input input-bordered input-sm w-full mt-2" />
+                    <input type="text" placeholder="Enter bestiary name (Uses 'Default' bestiary if empty)" v-model="bestiaryName" class="input input-bordered input-sm w-full mt-2" />
                     <select v-model="selectedSource" class="select select-bordered select-sm w-full mt-2">
                         <option value="">Select existing source</option>
                         <option v-for="source in availableSources" :key="source" :value="source">{{ source }}</option>
