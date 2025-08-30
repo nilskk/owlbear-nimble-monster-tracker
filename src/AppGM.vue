@@ -232,6 +232,14 @@ const confirmTokenUpdate = () => {
                         }
                         item.metadata[`${ID}/monstersheet`] = monsterData;
                     }
+                }).then(() => {
+                    // Refresh the playerSelection to include the new metadata
+                    OBR.scene.items.getItems(itemIds).then((updatedItems) => {
+                        if (updatedItems.length > 0 && updatedItems[0].layer == 'CHARACTER') {
+                            playerSelection.value = updatedItems[0];
+                            showMonsterSheet(updatedItems[0]);
+                        }
+                    });
                 });
             });
         }

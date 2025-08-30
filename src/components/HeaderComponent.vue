@@ -103,23 +103,26 @@ const rollD20RightClick = (event) => {
             </div>
             
             <!-- Hit Points -->
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 min-h-[2rem]">
                 <span class="text-lg">❤️</span>
-                <!-- Show input field for linked tokens (with current_hp) -->
-                <template v-if="props.monster.current_hp !== undefined">
+                <!-- Show input field only when token is selected AND the token itself has monster data with current_hp -->
+                <template v-if="
+                    props.playerSelection && 
+                    props.playerSelection.metadata && 
+                    props.playerSelection.metadata['com.nilskk.owlbear-nimble-token-tracker/monstersheet'] && 
+                    props.playerSelection.metadata['com.nilskk.owlbear-nimble-token-tracker/monstersheet'].current_hp !== undefined
+                ">
                     <input type="text" 
                            :value="props.monster.current_hp"
-                           :disabled="!props.playerSelection"
                            @focus="handleHpFocus"
                            @blur="handleHpBlur"
                            @keydown="handleHpKeydown"
-                           class="input input-sm w-16 text-center text-lg font-bold" 
-                           :class="{ 'input-disabled': !props.playerSelection }"
+                           class="input input-sm w-16 h-8 text-center text-lg font-bold" 
                            placeholder="HP">
                     <span class="text-lg font-bold text-base-content">/</span>
                     <span class="text-lg font-bold text-error">{{ props.monster.hp }}</span>
                 </template>
-                <!-- Show only max HP for non-linked monsters -->
+                <!-- Show only max HP for all other cases -->
                 <template v-else>
                     <span class="text-lg font-bold text-error">{{ props.monster.hp }}</span>
                 </template>
