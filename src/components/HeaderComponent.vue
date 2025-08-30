@@ -1,20 +1,79 @@
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { parseText, parseSaves } from '../parseFunctions';
 import { useRollButtonListeners } from '../composables/useRollButtonListeners.js';
 import { useGlobalContextMenu } from '../composables/useGlobalContextMenu.js';
 
 const props = defineProps({
-    monster: Object
+    monster: Object,
+    playerSelection: Object
 })
 
-const emit = defineEmits(['rollDiceHeader'])
+const emit = defineEmits(['rollDiceHeader', 'hpChanged'])
 
 const { show } = useGlobalContextMenu();
 
+// Smart HP input handling
+const isEditing = ref(false);
+
+// Watch for monster changes and initialize
 onMounted(async () => {
     await useRollButtonListeners(emit, 'rollDiceHeader');
 });
+
+const handleHpFocus = (event) => {
+    isEditing.value = true;
+    // Set the input value to current HP and select all text
+    event.target.value = props.monster.current_hp.toString();
+    event.target.select();
+};
+
+const handleHpBlur = (event) => {
+    isEditing.value = false;
+    // Revert back to current HP value
+    event.target.value = props.monster.current_hp.toString();
+};
+
+const handleHpKeydown = (event) => {
+    if (event.key === 'Enter') {
+        handleHpInput(event);
+    }
+};
+
+const handleHpInput = (event) => {
+    const input = event.target.value.trim();
+
+    if (!input) {
+        event.target.value = props.monster.current_hp.toString();
+        return;
+    }
+    
+    // Ensure current_hp is a number
+    const currentHp = parseInt(props.monster.current_hp);
+    
+    // Check if input starts with + or -
+    if (input.startsWith('+') || input.startsWith('-')) {
+        const change = parseInt(input);
+        if (!isNaN(change) && !isNaN(currentHp)) {
+            const newValue = Math.max(0, Math.min(props.monster.hp, currentHp + change));
+            props.monster.current_hp = newValue;
+        }
+    } else {
+        // Direct replacement
+        const newValue = parseInt(input);
+        if (!isNaN(newValue)) {
+            props.monster.current_hp = Math.max(0, Math.min(props.monster.hp, newValue));
+        }
+    }
+    
+    // Update the input field to show the new value
+    event.target.value = props.monster.current_hp.toString();
+    
+    // Emit HP change event to parent
+    emit('hpChanged', props.monster.current_hp);
+    
+    event.target.blur();
+};
 
 const rollD20 = () => {
     emit('rollDiceHeader', '1d20', 'normal', 1, false); // Save rolls without crit
@@ -46,7 +105,24 @@ const rollD20RightClick = (event) => {
             <!-- Hit Points -->
             <div class="flex items-center space-x-2">
                 <span class="text-lg">❤️</span>
-                <span class="text-lg font-bold text-error">{{ props.monster.hp }}</span>
+                <!-- Show input field for linked tokens (with current_hp) -->
+                <template v-if="props.monster.current_hp !== undefined">
+                    <input type="text" 
+                           :value="props.monster.current_hp"
+                           :disabled="!props.playerSelection"
+                           @focus="handleHpFocus"
+                           @blur="handleHpBlur"
+                           @keydown="handleHpKeydown"
+                           class="input input-sm w-16 text-center text-lg font-bold" 
+                           :class="{ 'input-disabled': !props.playerSelection }"
+                           placeholder="HP">
+                    <span class="text-lg font-bold text-base-content">/</span>
+                    <span class="text-lg font-bold text-error">{{ props.monster.hp }}</span>
+                </template>
+                <!-- Show only max HP for non-linked monsters -->
+                <template v-else>
+                    <span class="text-lg font-bold text-error">{{ props.monster.hp }}</span>
+                </template>
             </div>
             
             <!-- Speed -->

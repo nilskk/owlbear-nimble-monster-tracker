@@ -225,13 +225,34 @@ const confirmTokenUpdate = () => {
                 console.log(items);
                 OBR.scene.items.updateItems(items, (items2) => {
                     for (let item of items2) {
-                        item.metadata[`${ID}/monstersheet`] = JSON.parse(JSON.stringify(selectedMonster.value))
+                        const monsterData = JSON.parse(JSON.stringify(selectedMonster.value));
+                        // Initialize current_hp to max hp if not already set
+                        if (!monsterData.current_hp) {
+                            monsterData.current_hp = monsterData.hp;
+                        }
+                        item.metadata[`${ID}/monstersheet`] = monsterData;
                     }
                 });
             });
         }
     });
     myModal.value.close();
+};
+
+// Save HP changes back to token metadata
+const saveHpToToken = (newHp) => {
+    if (!playerSelection.value || !playerSelection.value.metadata[`${ID}/monstersheet`]) {
+        return;
+    }
+    
+    // Update the token's metadata with the new HP
+    OBR.scene.items.updateItems([playerSelection.value.id], (items) => {
+        for (let item of items) {
+            if (item.metadata[`${ID}/monstersheet`]) {
+                item.metadata[`${ID}/monstersheet`].current_hp = newHp;
+            }
+        }
+    });
 };
 </script>
 
@@ -263,7 +284,10 @@ const confirmTokenUpdate = () => {
             @open-settings="openSettings" />
 
         <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1">
-            <HeaderComponent :monster="selectedMonster" @rollDiceHeader="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
+            <HeaderComponent :monster="selectedMonster" 
+                           :player-selection="playerSelection"
+                           @rollDiceHeader="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)"
+                           @hpChanged="saveHpToToken" />
             <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
             <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
             <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
