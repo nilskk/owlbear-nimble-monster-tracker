@@ -17,7 +17,11 @@
                 
                 <!-- Expanded View -->
                 <div v-else class="p-4">
-                    <div class="text-xs opacity-70 mb-1">{{ roll.monster?.name || 'Unknown' }}</div>
+                    <div class="text-xs opacity-70 mb-1">
+                        <span v-if="roll.minionAttack && roll.minionCount > 1" class="text-orange-400 font-semibold">
+                            Minion Attack: {{ roll.minionCount }}x 
+                        </span>{{ roll.monster?.name || 'Unknown' }}
+                    </div>
                     <div class="flex items-center justify-start gap-3">
                         <span class="text-primary text-3xl font-bold">{{ roll.total }}</span>
                         <span class="opacity-50 border-2 px-1 rounded">{{ formatRollNotation(roll) }}</span>
@@ -51,7 +55,11 @@
             <!-- Latest Roll - Full Display (At Bottom) -->
             <div v-if="lastDiceRolls.length > 0" class="bg-base-300 shadow-lg rounded-lg max-w-80">
                 <div class="p-4">
-                    <div class="text-xs opacity-70 mb-1">{{ lastDiceRolls[0].monster?.name || 'Unknown' }}</div>
+                    <div class="text-xs opacity-70 mb-1">
+                        <span v-if="lastDiceRolls[0].minionAttack && lastDiceRolls[0].minionCount > 1" class="text-orange-400 font-semibold">
+                            Minion Attack: {{ lastDiceRolls[0].minionCount }}x 
+                        </span>{{ lastDiceRolls[0].monster?.name || 'Unknown' }}
+                    </div>
                     <div class="flex items-center justify-start gap-3">
                         <span class="text-primary text-3xl font-bold">{{ lastDiceRolls[0].total }}</span>
                         <span class="opacity-50 border-2 px-1 rounded">{{ formatRollNotation(lastDiceRolls[0]) }}</span>
@@ -124,7 +132,8 @@ const isRollExpanded = (rollIndex) => {
 }
 
 const formatRollNotation = (roll) => {
-    let notation = roll.originalNotation
+    // Use the modified notation (includes minion multiplication) instead of original
+    let notation = roll.notation || roll.originalNotation
     if (roll.rollMode !== 'normal') {
         notation += ` (${roll.rollMode === 'advantage' ? 'ADV' : 'DIS'} ${roll.count})`
     }

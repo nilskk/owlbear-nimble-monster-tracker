@@ -14,10 +14,35 @@
             type="checkbox" 
             v-model="critEnabled" 
             class="checkbox checkbox-sm mr-2"
+            :disabled="minionAttack"
             @click.stop
           />
           <span class="text-sm font-medium">Roll with Crit?</span>
         </label>
+        
+        <!-- Minion Attack checkbox with number input -->
+        <div class="flex items-center mt-2">
+          <label class="flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              v-model="minionAttack"
+              class="checkbox checkbox-sm mr-2"
+              @click.stop
+            />
+            <span class="text-sm font-medium">Minion Attack?</span>
+          </label>
+          <input
+            type="number"
+            v-model="minionCount"
+            min="1"
+            max="99"
+            class="input input-xs w-16 ml-2"
+            :disabled="!minionAttack"
+            @click.stop
+            @focus.stop
+            @blur.stop
+          />
+        </div>
       </div>
       
       <!-- Advantage/Disadvantage selector -->
@@ -40,7 +65,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, watch, onMounted, onUnmounted, ref } from 'vue'
 import { useGlobalContextMenu } from '../composables/useGlobalContextMenu.js'
 
 const { 
@@ -48,9 +73,17 @@ const {
   position, 
   currentModeIndex,
   critEnabled,
+  minionAttack,
+  minionCount,
   close, 
   executeRoll 
 } = useGlobalContextMenu()
+
+// Watch minionAttack to disable crit when checked (but don't uncheck it)
+watch(minionAttack, (newValue) => {
+  // We don't need to set critEnabled.value = false here
+  // Just let the disabled state handle it
+})
 
 const currentModeText = computed(() => {
   if (currentModeIndex.value === 0) {
@@ -73,7 +106,10 @@ const moveRight = () => {
 // Close menu when clicking outside
 const handleDocumentClick = (event) => {
   if (isVisible.value) {
-    close()
+    const contextMenuElement = document.querySelector('.fixed.z-50.bg-base-100')
+    if (contextMenuElement && !contextMenuElement.contains(event.target)) {
+      close()
+    }
   }
 }
 

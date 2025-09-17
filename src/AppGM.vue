@@ -99,11 +99,11 @@ const toggleDiceRolls = () => {
     }
 };
 
-const rollDice = (value, rollMode, count = 1, crit = true) => {
+const rollDice = (value, rollMode, count = 1, crit = true, minionAttack = false, minionCount = 1) => {
     // Clear any existing dice result when starting a new roll
     diceRollResult.value = null;
     
-    diceRollResult.value = rollDiceWithDiceRoller(value, rollMode, count, crit);
+    diceRollResult.value = rollDiceWithDiceRoller(value, rollMode, count, crit, minionAttack, minionCount);
     console.log('Dice roll result:', diceRollResult.value);
     console.log('DiceList:', diceRollResult.value.diceList);
     console.log('ExplodingDiceList:', diceRollResult.value.explodingDiceList);
@@ -294,11 +294,11 @@ const saveHpToToken = (newHp) => {
         <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1">
             <HeaderComponent :monster="selectedMonster" 
                            :player-selection="playerSelection"
-                           @rollDiceHeader="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)"
+                           @rollDiceHeader="(value, rollMode, count, crit, minionAttack, minionCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount)"
                            @hpChanged="saveHpToToken" />
-            <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
-            <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
-            <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count, crit) => rollDice(value, rollMode, count, crit)" />
+            <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit, minionAttack, minionCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount)" />
+            <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit, minionAttack, minionCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount)" />
+            <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count, crit, minionAttack, minionCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount)" />
         </div>
         
         <!-- Round D20 Toggle Button -->
