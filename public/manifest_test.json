@@ -1,7 +1,7 @@
 {
   "name": "Nimble Monster Tracker Test",
   "description": "A tool for uploading Nimble statblocks and assigning them to tokens.",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "manifest_version": 1,
   "author": "nilskk",
   "action": {

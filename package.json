@@ -1,7 +1,7 @@
 {
   "name": "owlbear-nimble-monster-tracker",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.1.0",
   "homepage": "https://nilskk.github.io/owlbear-nimble-monster-tracker",
   "type": "module",
   "scripts": {
