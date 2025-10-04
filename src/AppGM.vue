@@ -11,6 +11,7 @@ import NavbarComponent from './components/NavbarComponent.vue';
 import DiceRollDisplay from './components/DiceRollDisplay.vue';
 import { ref, computed, onMounted, watch } from 'vue'
 import { db } from './db'
+import { deleteByNameAndSource } from './dbFunctions'
 import { rollDiceWithDiceRoller } from './diceFunctions';
 import { loadSettings, saveSettings } from './settingsFunctions';
 import OBR from '@owlbear-rodeo/sdk';
@@ -154,6 +155,24 @@ const selectMonster = (monster) => {
     // Keep lastGameTerm across monsters (conditions are general game mechanics)
 };
 
+const deleteMonster = async (name, source) => {
+    try {
+        await deleteByNameAndSource(name, source);
+        console.log(`Successfully deleted monster: ${name} from source: ${source}`);
+        
+        // If the deleted monster was the currently selected one, clear the selection
+        if (selectedMonster.value && selectedMonster.value.name === name && selectedMonster.value.source === source) {
+            selectedMonster.value = null;
+        }
+        
+        // Refresh the bestiary to update the UI
+        await refreshBestiary();
+    } catch (error) {
+        console.error('Error deleting monster:', error);
+        alert(`Error deleting monster: ${error.message}`);
+    }
+};
+
 
 const refreshBestiary = async () => {
     const bestiary = await db.bestiary.toArray();
@@ -289,7 +308,8 @@ const saveHpToToken = (newHp) => {
             @select-monster="selectMonster"
             @update-tokens="updateTokens"
             @open-upload="openUpload"
-            @open-settings="openSettings" />
+            @open-settings="openSettings"
+            @delete-monster="deleteMonster" />
 
         <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1">
             <HeaderComponent :monster="selectedMonster" 

@@ -25,6 +25,14 @@
                     </button>
                 </div>
                 <div class="pt-4 border-t">
+                    <p class="font-bold mb-2">Delete Specific Source</p>
+                    <select v-model="sourceToDelete" class="select select-bordered select-sm w-full mb-2">
+                        <option value="">Select source to delete</option>
+                        <option v-for="source in availableSources" :key="source" :value="source">{{ source }}</option>
+                    </select>
+                    <button @click="deleteSource" :disabled="!sourceToDelete" class="btn btn-warning w-full">Delete Selected Source</button>
+                </div>
+                <div class="pt-4 border-t">
                     <button @click="deleteData" class="btn btn-error w-full">Delete all data</button>
                 </div>
             </div>
@@ -42,7 +50,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { writeBulkToTable, clearTable } from '../dbFunctions'
+import { writeBulkToTable, clearTable, deleteBySource } from '../dbFunctions'
 import { db } from '../db'
 
 // Props
@@ -61,6 +69,7 @@ const uploadModal = ref(null)
 const fileInput = ref(null)
 const bestiaryName = ref('')
 const selectedSource = ref('')
+const sourceToDelete = ref('')
 const jsonUrl = ref('')
 const isLoading = ref(false)
 
@@ -240,6 +249,24 @@ const saveJson = async () => {
 const deleteData = async () => {
     await clearTable()
     emit('refreshBestiary')
+}
+
+const deleteSource = async () => {
+    if (!sourceToDelete.value) return
+    
+    try {
+        const deletedCount = await deleteBySource(sourceToDelete.value)
+        console.log(`Deleted ${deletedCount} monsters from source: ${sourceToDelete.value}`)
+        
+        // Clear the selection and refresh the bestiary
+        sourceToDelete.value = ''
+        emit('refreshBestiary')
+        
+        alert(`Successfully deleted ${deletedCount} monsters from source: ${sourceToDelete.value}`)
+    } catch (error) {
+        console.error('Error deleting source:', error)
+        alert(`Error deleting source: ${error.message}`)
+    }
 }
 
 // Expose methods to parent

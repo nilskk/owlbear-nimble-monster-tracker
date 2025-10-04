@@ -26,6 +26,11 @@
                 <a v-if="playerSelection && playerSelection.metadata && playerSelection.metadata[`${ID}/monstersheet`]">Update Token</a>
                 <a v-else>Link Token</a>
             </button>
+            <button @click="deleteCurrentMonster" v-if="selectedMonster" class="btn btn-square btn-ghost" title="Delete current monster">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+                    <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+                </svg>
+            </button>
             <button @click="openUpload" class="btn btn-square btn-ghost">
                 <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
                     <path d="M450-313v-371L330-564l-43-43 193-193 193 193-43 43-120-120v371h-60ZM220-160q-24 0-42-18t-18-42v-143h60v143h520v-143h60v143q0 24-18 42t-42 18H220Z"/>
@@ -38,6 +43,22 @@
             </button>
         </div>
     </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <dialog ref="deleteModal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">Confirm Deletion</h3>
+            <p class="py-4">Are you sure you want to delete <strong>{{ selectedMonster?.name }}</strong> from <strong>{{ selectedMonster?.source }}</strong>?</p>
+            <p class="text-sm text-warning">This action cannot be undone.</p>
+            <div class="modal-action">
+                <button @click="confirmDelete" class="btn btn-error">Delete</button>
+                <button @click="cancelDelete" class="btn">Cancel</button>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button @click="cancelDelete">close</button>
+        </form>
+    </dialog>
 </template>
 
 <script setup>
@@ -65,10 +86,11 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['selectMonster', 'updateTokens', 'openUpload', 'openSettings'])
+const emit = defineEmits(['selectMonster', 'updateTokens', 'openUpload', 'openSettings', 'deleteMonster'])
 
 // Local state
 const searchInput = ref('')
+const deleteModal = ref(null)
 
 // Computed
 const filteredGroupedBestiary = computed(() => {
@@ -104,5 +126,22 @@ const openUpload = () => {
 
 const openSettings = () => {
     emit('openSettings')
+}
+
+const deleteCurrentMonster = () => {
+    if (props.selectedMonster) {
+        deleteModal.value?.showModal()
+    }
+}
+
+const confirmDelete = () => {
+    if (props.selectedMonster) {
+        emit('deleteMonster', props.selectedMonster.name, props.selectedMonster.source)
+        deleteModal.value?.close()
+    }
+}
+
+const cancelDelete = () => {
+    deleteModal.value?.close()
 }
 </script>

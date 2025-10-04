@@ -39,4 +39,24 @@ function clearTable() {
     });
 }
 
-export { writeBulkToTable, clearTable }
+function deleteBySource(source) {
+    return db.bestiary.where('source').equals(source).delete().then(function(deleteCount) {
+        console.log(`Deleted ${deleteCount} monsters from source: ${source}`);
+        return deleteCount;
+    }).catch(function(error) {
+        console.error(`Error deleting monsters from source ${source}:`, error);
+        throw error;
+    });
+}
+
+function deleteByNameAndSource(name, source) {
+    return db.bestiary.delete([name, source]).then(function() {
+        console.log(`Deleted monster: ${name} from source: ${source}`);
+        return true;
+    }).catch(function(error) {
+        console.error(`Error deleting monster ${name} from source ${source}:`, error);
+        throw error;
+    });
+}
+
+export { writeBulkToTable, clearTable, deleteBySource, deleteByNameAndSource }
