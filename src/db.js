@@ -13,3 +13,24 @@ db.version(1).stores({
     bestiary: '[name+source], [source+name], data', 
 });
 
+db.version(2).stores({
+    bestiary: '[name+source], [source+name], data',
+}).upgrade(tx => {
+    // Clear the bestiary table on upgrade
+    return tx.table('bestiary').clear();
+});
+
+db.version(3).stores({
+    bestiary: '[name+source], [source+name], data',
+}).upgrade(tx => {
+    // Clear the bestiary table on upgrade
+    return tx.table('bestiary').clear();
+});
+
+db.version(4).stores({
+    bestiary: '[name+source], [source+name], data',
+}).upgrade(tx => {
+    // Clear the bestiary table on upgrade
+    return tx.table('bestiary').clear();
+});
+

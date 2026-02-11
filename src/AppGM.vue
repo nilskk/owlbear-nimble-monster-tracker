@@ -1,8 +1,10 @@
 <script setup>
 import HeaderComponent from './components/HeaderComponent.vue';
 import ActionsComponent from './components/ActionsComponent.vue';
+import FamiliesComponent from './components/FamiliesComponent.vue';
 import PassiveComponent from './components/PassiveComponent.vue';
 import LegendaryComponent from './components/LegendaryComponent.vue';
+import DescriptionComponent from './components/DescriptionComponent.vue';
 import GlobalRollContextMenu from './components/GlobalRollContextMenu.vue';
 import UploadModal from './components/UploadModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
@@ -247,7 +249,7 @@ const confirmTokenUpdate = () => {
                         const monsterData = JSON.parse(JSON.stringify(selectedMonster.value));
                         // Initialize current_hp to max hp if not already set
                         if (!monsterData.current_hp) {
-                            monsterData.current_hp = monsterData.hp;
+                            monsterData.current_hp = monsterData.data.attributes.hp;
                         }
                         item.metadata[`${ID}/monstersheet`] = monsterData;
                     }
@@ -316,18 +318,20 @@ const saveHpToToken = (newHp) => {
                            :player-selection="playerSelection"
                            @rollDiceHeader="(value, rollMode, count, crit, minionAttack, minionCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount)"
                            @hpChanged="saveHpToToken" />
+            <FamiliesComponent :monster="selectedMonster" @rollDiceFamilies="(value, rollMode, count, crit, minionAttack, minionCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount)" />
             <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit, minionAttack, minionCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount)" />
             <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit, minionAttack, minionCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount)" />
             <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count, crit, minionAttack, minionCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount)" />
+            <DescriptionComponent :monster="selectedMonster" @rollDiceDescription="(value, rollMode, count, crit, minionAttack, minionCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount)" />
         </div>
         
         <!-- Round D20 Toggle Button -->
         <div class="absolute bottom-8 right-8 z-20">
             <button @click="toggleDiceRolls" 
-                    class="btn btn-circle btn-lg btn-primary shadow-lg hover:shadow-xl transition-all"
+                    class="btn btn-circle btn-lg btn-primary shadow-lg hover:shadow-xl transition-all opacity-50"
                     :class="{ 
                         'btn-active': diceRollsVisible,
-                        'btn-disabled opacity-50': lastDiceRolls.length === 0
+                        'btn-disabled': lastDiceRolls.length === 0
                     }"
                     :disabled="lastDiceRolls.length === 0">
                 <!-- D20 Icosahedron SVG from dice CSS -->

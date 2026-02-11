@@ -15,7 +15,7 @@ function parseText(value) {
     const dicePattern = /(\d+d\d+(?:\s*[+\-]\s*\d+)?)/gi;
     
     // Regex to match DC checks like DC 15 WIL, DC 20 STR, etc.
-    const dcPattern = /(DC\s+\d+\s+(?:WIL|INT|STR|DEX))/gi;
+    const dcPattern = /(DC\s+\d+\s+(?:WIL|INT|STR|DEX|ALL))/gi;
     
     let result = value;
     
@@ -41,14 +41,18 @@ function parseText(value) {
 function parseSaves(value) {
     if (!value) return value;
 
-    let result = value;
+    let result = "";
 
-    const savesPattern = /(\b[\w\/]+[+\-]+\d*)/gi;
+    let result_list = [];
+    for (const [key, entry] of Object.entries(value)) {
+        let ability = key.toUpperCase()
+        const sign = entry > 0 ? "+" : "-";
+        ability += sign.repeat(Math.abs(entry));
+        ability = convertSaves(ability)
+        result_list.push(ability)
+    }
 
-    // Replace ability score modifiers
-    result = result.replace(savesPattern, (match) => {
-        return convertSaves(match.trim());
-    });
+    result = result_list.join(" ")
 
     return result;
 }
@@ -100,6 +104,10 @@ function parseMarkdown(value) {
     let result = value;
     
     // Process in order from most specific to least specific to avoid conflicts
+
+    // Remove Brackets
+    result = result.replace(/\[\[/g, '')
+    result = result.replace(/\]\]/g, '')
     
     // Bold Italic: ***text*** or ___text___ (must be first)
     result = result.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
@@ -112,7 +120,7 @@ function parseMarkdown(value) {
     // Italic: *text* or _text_
     result = result.replace(/\*(.*?)\*/g, '<em>$1</em>');
     result = result.replace(/_(.*?)_/g, '<em>$1</em>');
-    
+
     return result;
 }
 

@@ -60,15 +60,17 @@ const hideTooltip = () => {
 const setupEventListeners = () => {
     // Use event delegation to handle hover events on dynamically added game terms
     document.addEventListener('mouseenter', (event) => {
-        if (event.target.classList.contains('game-term')) {
-            const term = event.target.getAttribute('data-term')
-            const description = event.target.getAttribute('data-description')
+        const target = event.target;
+        if (target instanceof Element && target.classList.contains('game-term')) {
+            const term = target.getAttribute('data-term')
+            const description = target.getAttribute('data-description')
             showTooltip(event, term, description)
         }
     }, true) // Use capture phase for better event handling
     
     document.addEventListener('mouseleave', (event) => {
-        if (event.target.classList.contains('game-term')) {
+        const target = event.target;
+        if (target instanceof Element && target.classList.contains('game-term')) {
             hideTooltip()
         }
     }, true)

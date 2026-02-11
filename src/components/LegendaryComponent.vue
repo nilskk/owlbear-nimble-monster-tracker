@@ -19,21 +19,21 @@ onUpdated(attachListeners);
 </script>
 
 <template>
-    <div v-if="props.monster.bloodied || props.monster.laststand" class="divider divider-accent font-bold mb-0">Legendary</div>
-    <div v-if="props.monster.bloodied || props.monster.laststand" class="px-2 pt-2 space-y-2">
+    <div v-if="props.monster.data.attributes.legendary && (props.monster.data.attributes.bloodied || props.monster.data.attributes.lastStand)" class="divider divider-accent font-bold mb-0">Legendary</div>
+    <div v-if="props.monster.data.attributes.legendary && (props.monster.data.attributes.bloodied || props.monster.data.attributes.lastStand)" class="px-2 pt-2 space-y-2">
         <!-- Bloodied -->
-        <div v-if="props.monster.bloodied" class="space-y-1">
+        <div v-if="props.monster.data.attributes.bloodied && props.monster.data.attributes.bloodied.description" class="space-y-1">
             <p class="w-full break-words">
                 <span class="font-bold text-warning">Bloodied:</span>
-                <span v-html="parseText(props.monster.bloodied)" class="ml-2"></span>
+                <span v-html="parseText(props.monster.data.attributes.bloodied.description)" class="ml-2"></span>
             </p>
         </div>
 
         <!-- Last Stand -->
-        <div v-if="props.monster.laststand" class="space-y-1">
+        <div v-if="props.monster.data.attributes.lastStand && props.monster.data.attributes.lastStand.description" class="space-y-1">
             <p class="w-full break-words">
                 <span class="font-bold text-error">Last Stand:</span>
-                <span v-html="parseText(props.monster.laststand)" class="ml-2"></span>
+                <span v-html="parseText(props.monster.data.attributes.lastStand.description)" class="ml-2"></span>
             </p>
         </div>
     </div>
