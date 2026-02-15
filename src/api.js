@@ -40,6 +40,7 @@ async function get_data(url) {
             'Accept': 'application/json',
         },
         mode: 'cors', // Handle CORS
+        credentials: 'include',
     })
     
     console.log('Response status:', response.status)
