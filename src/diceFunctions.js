@@ -46,14 +46,11 @@ function rollMinionAttack(diceString, rollMode="normal", count=1, minionCount=1,
         .filter(die => !die.isDropped)
         .reduce((sum, die) => sum + die.value, 0);
     
-    // Count minions that hit (non-1 rolls) for modifier calculation
-    const hittingMinions = diceList.filter(die => !die.isDropped).length;
-    
     // Extract numeric modifier
     const modifierValue = originalModifier ? 
         parseInt(originalModifier.replace(/[^-+\d]/g, '')) || 0 : 0;
     
-    const finalTotal = nonDroppedDiceTotal + (modifierValue * hittingMinions);
+    const finalTotal = nonDroppedDiceTotal + modifierValue;
     
     return {
         total: finalTotal,
