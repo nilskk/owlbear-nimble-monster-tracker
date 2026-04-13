@@ -67,8 +67,8 @@ function rollMinionAttack(diceString, rollMode="normal", count=1, minionCount=1,
 }
 
 
-function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1, crit=true, minionAttack=false, minionCount=1) {
-    console.log('rollDiceWithDiceRoller called with:', { diceString, rollMode, count, crit, minionAttack, minionCount });
+function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1, crit=true, minionAttack=false, minionCount=1, explodingDieCount=1) {
+    console.log('rollDiceWithDiceRoller called with:', { diceString, rollMode, count, crit, minionAttack, minionCount, explodingDieCount });
 
     const originalDiceString = diceString; // Store the original notation
     
@@ -115,7 +115,7 @@ function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1, crit=tru
 
     // Check if we need to add exploding dice for the first non-dropped die
     if (crit && firstNonDroppedDie && firstNonDroppedDie.calculationValue === diceType) {
-        const explodingRoll = new DiceRoll(`1d${diceType}!`);
+        const explodingRoll = new DiceRoll(`${explodingDieCount}d${diceType}!`);
         const explodingResults = explodingRoll.rolls[0] ? explodingRoll.rolls[0].rolls : [];
         
         if (explodingResults.length > 0) {

@@ -43,6 +43,23 @@
             @blur.stop
           />
         </div>
+
+        <!-- Crit Exploding Die number input -->
+        <div class="flex items-center mt-2">
+          <label class="flex items-center cursor-pointer">
+            <span class="text-sm font-medium">Exploding Die on Crit</span>
+          </label>
+          <input
+            type="number"
+            v-model="explodingDieCount"
+            min="1"
+            max="99"
+            class="input input-xs w-16 ml-2"
+            @click.stop
+            @focus.stop
+            @blur.stop
+          />
+        </div>
       </div>
       
       <!-- Advantage/Disadvantage selector -->
@@ -75,6 +92,7 @@ const {
   critEnabled,
   minionAttack,
   minionCount,
+  explodingDieCount,
   close, 
   executeRoll 
 } = useGlobalContextMenu()
