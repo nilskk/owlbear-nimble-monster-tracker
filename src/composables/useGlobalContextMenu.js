@@ -10,7 +10,7 @@ const currentEventName = ref('rollDice')
 const critEnabled = ref(true) // Add crit state with default true
 const minionAttack = ref(false) // Add minion attack state
 const minionCount = ref(1) // Add minion count state
-const explodingDieCount = ref(1) // Add exploding die count state
+const viciousAttack = ref(false) // Add vicious attack state
 
 export const useGlobalContextMenu = () => {
   const show = (event, text, emitFn, eventName, defaultCrit = true, initialModeIndex = 0) => {
@@ -62,7 +62,7 @@ export const useGlobalContextMenu = () => {
     // Reset settings to defaults when closing
     minionAttack.value = false
     minionCount.value = 1
-    explodingDieCount.value = 1
+    viciousAttack.value = false
   }
 
   const executeRoll = () => {
@@ -75,7 +75,7 @@ export const useGlobalContextMenu = () => {
       const effectiveCrit = minionAttack.value ? false : critEnabled.value
       
       // Pass the roll text, mode, count, effective crit flag, minion attack, and minion count to the emit function
-      currentEmitFunction.value(currentEventName.value, rollText.value, mode, count, effectiveCrit, minionAttack.value, minionCount.value, explodingDieCount.value)
+      currentEmitFunction.value(currentEventName.value, rollText.value, mode, count, effectiveCrit, minionAttack.value, minionCount.value, viciousAttack.value)
     }
     close()
   }
@@ -88,7 +88,7 @@ export const useGlobalContextMenu = () => {
     critEnabled,
     minionAttack,
     minionCount,
-    explodingDieCount,
+    viciousAttack,
     show,
     close,
     executeRoll

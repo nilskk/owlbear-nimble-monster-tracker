@@ -102,11 +102,11 @@ const toggleDiceRolls = () => {
     }
 };
 
-const rollDice = (value, rollMode, count = 1, crit = true, minionAttack = false, minionCount = 1, explodingDieCount = 1) => {
+const rollDice = (value, rollMode, count = 1, crit = true, minionAttack = false, minionCount = 1, viciousAttack = false) => {
     // Clear any existing dice result when starting a new roll
     diceRollResult.value = null;
     
-    diceRollResult.value = rollDiceWithDiceRoller(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount);
+    diceRollResult.value = rollDiceWithDiceRoller(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack);
     console.log('Dice roll result:', diceRollResult.value);
     console.log('DiceList:', diceRollResult.value.diceList);
     console.log('ExplodingDiceList:', diceRollResult.value.explodingDiceList);
@@ -316,13 +316,13 @@ const saveHpToToken = (newHp) => {
         <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1">
             <HeaderComponent :monster="selectedMonster" 
                            :player-selection="playerSelection"
-                           @rollDiceHeader="(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount)"
+                           @rollDiceHeader="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)"
                            @hpChanged="saveHpToToken" />
-            <FamiliesComponent :monster="selectedMonster" @rollDiceFamilies="(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount)" />
-            <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount)" />
-            <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount)" />
-            <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount)" />
-            <DescriptionComponent :monster="selectedMonster" @rollDiceDescription="(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, explodingDieCount)" />
+            <FamiliesComponent :monster="selectedMonster" @rollDiceFamilies="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
+            <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
+            <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
+            <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
+            <DescriptionComponent :monster="selectedMonster" @rollDiceDescription="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
         </div>
         
         <!-- Round D20 Toggle Button -->

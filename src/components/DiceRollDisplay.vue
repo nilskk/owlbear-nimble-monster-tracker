@@ -36,6 +36,7 @@
                                         'line-through opacity-50': die.isDropped,
                                         'text-red-400': die.isPrimary && die.isMinValue && !die.isDropped,
                                         'text-green-400': (die.isPrimary && die.isMaxValue && !die.isDropped) || (die.isExploding && die.isMaxValue),
+                                        'text-orange-400': die.isVicious,
                                     }"
                                     class="inline-block transition-all"
                                 >
@@ -74,6 +75,7 @@
                                         'line-through opacity-50': die.isDropped,
                                         'text-red-400': die.isPrimary && die.isMinValue && !die.isDropped,
                                         'text-green-400': (die.isPrimary && die.isMaxValue && !die.isDropped) || (die.isExploding && die.isMaxValue),
+                                        'text-orange-400': die.isVicious,
                                     }"
                                     class="inline-block transition-all"
                                 >

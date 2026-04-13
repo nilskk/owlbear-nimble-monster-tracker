@@ -44,21 +44,17 @@
           />
         </div>
 
-        <!-- Crit Exploding Die number input -->
+        <!-- Vicious Attack -->
         <div class="flex items-center mt-2">
           <label class="flex items-center cursor-pointer">
-            <span class="text-sm font-medium">Exploding Die on Crit</span>
+            <input
+              type="checkbox"
+              v-model="viciousAttack"
+              class="checkbox checkbox-sm mr-2"
+              @click.stop
+            />
+            <span class="text-sm font-medium">Vicious Attack</span>
           </label>
-          <input
-            type="number"
-            v-model="explodingDieCount"
-            min="1"
-            max="99"
-            class="input input-xs w-16 ml-2"
-            @click.stop
-            @focus.stop
-            @blur.stop
-          />
         </div>
       </div>
       
@@ -92,7 +88,7 @@ const {
   critEnabled,
   minionAttack,
   minionCount,
-  explodingDieCount,
+  viciousAttack,
   close, 
   executeRoll 
 } = useGlobalContextMenu()

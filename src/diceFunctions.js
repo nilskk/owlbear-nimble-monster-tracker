@@ -67,8 +67,8 @@ function rollMinionAttack(diceString, rollMode="normal", count=1, minionCount=1,
 }
 
 
-function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1, crit=true, minionAttack=false, minionCount=1, explodingDieCount=1) {
-    console.log('rollDiceWithDiceRoller called with:', { diceString, rollMode, count, crit, minionAttack, minionCount, explodingDieCount });
+function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1, crit=true, minionAttack=false, minionCount=1, viciousAttack=false) {
+    console.log('rollDiceWithDiceRoller called with:', { diceString, rollMode, count, crit, minionAttack, minionCount, viciousAttack});
 
     const originalDiceString = diceString; // Store the original notation
     
@@ -115,7 +115,7 @@ function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1, crit=tru
 
     // Check if we need to add exploding dice for the first non-dropped die
     if (crit && firstNonDroppedDie && firstNonDroppedDie.calculationValue === diceType) {
-        const explodingRoll = new DiceRoll(`${explodingDieCount}d${diceType}!`);
+        const explodingRoll = new DiceRoll(`1d${diceType}!`);
         const explodingResults = explodingRoll.rolls[0] ? explodingRoll.rolls[0].rolls : [];
         
         if (explodingResults.length > 0) {
@@ -129,17 +129,37 @@ function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1, crit=tru
             }));
 
             // Combine totals
-            const combinedTotal = roll.total + explodingRoll.total;
+            let combinedTotal = roll.total + explodingRoll.total;
+            let allDice = [...diceList];
             
             // Insert exploding dice right after the primary die that exploded
             const primaryDieIndex = diceList.findIndex(die => die.isPrimary);
-            const allDice = [...diceList];
             if (primaryDieIndex >= 0) {
                 // Insert exploding dice after the primary die
                 allDice.splice(primaryDieIndex + 1, 0, ...explodingDiceList);
             } else {
                 // Fallback: add at the end if primary die not found
                 allDice.push(...explodingDiceList);
+            }
+            
+            // Handle vicious attack: add one non-exploding die for each crit (max value of dice)
+            if (viciousAttack) {
+                const totalExplodedDiceCount = explodingDiceList.length;
+                const viciousRoll = new DiceRoll(`${totalExplodedDiceCount}d${diceType}`);
+                const viciousResults = viciousRoll.rolls[0] ? viciousRoll.rolls[0].rolls : [];
+                
+                const viciousDiceList = viciousResults.map(result => ({
+                    value: result.value,
+                    isDropped: false,
+                    isPrimary: false,
+                    isMaxValue: result.value === diceType,
+                    isMinValue: result.value === 1,
+                    isExploding: false, // Non-exploding dice for vicious attack
+                    isVicious: true
+                }));
+                
+                allDice.push(...viciousDiceList);
+                combinedTotal += viciousRoll.total;
             }
             
             return {
