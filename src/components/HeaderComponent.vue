@@ -9,12 +9,32 @@ const props = defineProps({
     playerSelection: Object
 })
 
-const emit = defineEmits(['rollDiceHeader', 'hpChanged'])
+const emit = defineEmits(['rollDiceHeader', 'hpChanged', 'tempHpChanged']);
 
 const { show } = useGlobalContextMenu();
 
 // Smart HP input handling
 const isEditing = ref(false);
+const isEditingTemp = ref(false);
+
+// Check if Monster is in Last Stand State (0 or negative HP)
+const isLastStand = computed(() => {
+    return props.monster.current_hp <= 0;
+});
+
+// Check if Monster is Bloodied (current HP at or below half of max HP, but above 0)
+const isBloodied = computed(() => {
+    const bloodiedThreshold = Math.floor(props.monster.data.attributes.hp / 2);
+    return props.monster.current_hp > 0 && props.monster.current_hp <= bloodiedThreshold;
+});
+
+const hasLastStand = computed(() => {
+    return props.monster.data.attributes.lastStand !== undefined;
+});
+
+const hasBloodied = computed(() => {
+    return props.monster.data.attributes.bloodied !== undefined;
+});
 
 // Format movement array
 const formattedMovement = computed(() => {
@@ -64,19 +84,43 @@ const handleHpInput = (event) => {
     
     // Ensure current_hp is a number
     const currentHp = parseInt(props.monster.current_hp);
+    const maxHp = parseInt(props.monster.data.attributes.hp);
+    const currentTempHp = parseInt(props.monster.temp_hp) || 0;
     
     // Check if input starts with + or -
     if (input.startsWith('+') || input.startsWith('-')) {
         const change = parseInt(input);
         if (!isNaN(change) && !isNaN(currentHp)) {
-            const newValue = Math.max(0, Math.min(props.monster.data.attributes.hp, currentHp + change));
+            let newValue;
+            if (change < 0) {
+                // Damage: deduct from temp HP first, then from current HP
+                let remainingDamage = Math.abs(change);
+                
+                // Deduct from temp HP first
+                if (currentTempHp > 0) {
+                    const tempHpDeduction = Math.min(currentTempHp, remainingDamage);
+                    props.monster.temp_hp = currentTempHp - tempHpDeduction;
+                    remainingDamage -= tempHpDeduction;
+                }
+                
+                // Deduct remaining damage from current HP
+                if (currentHp > 0) {
+                    newValue = Math.max(0, currentHp - remainingDamage);
+                } else {
+                    // If HP is already 0 or negative, allow going more negative
+                    newValue = currentHp - remainingDamage;
+                }
+            } else {
+                // Healing or positive change: cap at max HP
+                newValue = Math.min(maxHp, currentHp + change);
+            }
             props.monster.current_hp = newValue;
         }
     } else {
-        // Direct replacement
+        // Direct replacement - cap at max HP
         const newValue = parseInt(input);
         if (!isNaN(newValue)) {
-            props.monster.current_hp = Math.max(0, Math.min(props.monster.data.attributes.hp, newValue));
+            props.monster.current_hp = Math.min(maxHp, newValue);
         }
     }
     
@@ -84,7 +128,55 @@ const handleHpInput = (event) => {
     event.target.value = props.monster.current_hp.toString();
     
     // Emit HP change event to parent
-    emit('hpChanged', props.monster.current_hp);
+    emit('hpChanged', props.monster.current_hp, props.monster.temp_hp);
+    
+    event.target.blur();
+};
+
+// Temp HP handlers
+const handleTempHpFocus = (event) => {
+    isEditingTemp.value = true;
+    event.target.value = (props.monster.temp_hp || 0).toString();
+    event.target.select();
+};
+
+const handleTempHpBlur = (event) => {
+    isEditingTemp.value = false;
+    event.target.value = (props.monster.temp_hp || 0).toString();
+};
+
+const handleTempHpKeydown = (event) => {
+    if (event.key === 'Enter') {
+        handleTempHpInput(event);
+    }
+};
+
+const handleTempHpInput = (event) => {
+    const input = event.target.value.trim();
+
+    if (!input) {
+        event.target.value = (props.monster.temp_hp || 0).toString();
+        return;
+    }
+    
+    // Check if input starts with + or -
+    if (input.startsWith('+') || input.startsWith('-')) {
+        const change = parseInt(input);
+        if (!isNaN(change)) {
+            const currentTempHp = props.monster.temp_hp || 0;
+            props.monster.temp_hp = Math.max(0, currentTempHp + change);
+        }
+    } else {
+        const newValue = parseInt(input);
+        if (!isNaN(newValue)) {
+            props.monster.temp_hp = Math.max(0, newValue);
+        }
+    }
+    
+    event.target.value = (props.monster.temp_hp || 0).toString();
+    
+    // Emit HP change event to parent so it can persist the temp HP
+    emit('hpChanged', props.monster.current_hp, props.monster.temp_hp);
     
     event.target.blur();
 };
@@ -104,7 +196,11 @@ const rollD20RightClick = (event) => {
     <div class="bg-base-200 rounded-lg p-4 m-2 shadow-lg">
         <!-- Monster Name and Challenge Rating -->
         <div class="flex justify-between items-center mb-3">
-            <h2 class="text-xl font-bold">{{ props.monster.data.attributes.name }}</h2>
+            <div class="flex items-center gap-2">
+                <h2 class="text-xl font-bold">{{ props.monster.data.attributes.name }}</h2>
+                <span v-if="isLastStand && hasLastStand" class="text-xl font-bold text-error">Last Stand</span>
+                <span v-if="isBloodied && hasBloodied" class="text-xl font-bold text-warning">Bloodied</span>
+            </div>
             <span class="badge badge-primary badge-soft font-bold">{{ props.monster.data.attributes.level || '-' }}</span>
         </div>
         
@@ -135,6 +231,13 @@ const rollD20RightClick = (event) => {
                            placeholder="HP">
                     <span class="text-lg font-bold text-base-content">/</span>
                     <span class="text-lg font-bold text-error">{{ props.monster.data.attributes.hp }}</span>
+                    <input type="text" 
+                           :value="props.monster.temp_hp || 0"
+                           @focus="handleTempHpFocus"
+                           @blur="handleTempHpBlur"
+                           @keydown="handleTempHpKeydown"
+                           class="input input-sm w-16 h-8 text-center text-lg font-bold text-info ml-1" 
+                           placeholder="Temp">
                 </template>
                 <!-- Show only max HP for all other cases -->
                 <template v-else>

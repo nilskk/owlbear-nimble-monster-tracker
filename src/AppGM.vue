@@ -251,6 +251,10 @@ const confirmTokenUpdate = () => {
                         if (!monsterData.current_hp) {
                             monsterData.current_hp = monsterData.data.attributes.hp;
                         }
+                        // Initialize temp_hp to 0 if not already set                        
+                        if (!monsterData.temp_hp) {
+                            monsterData.temp_hp = 0;
+                        }
                         item.metadata[`${ID}/monstersheet`] = monsterData;
                     }
                 }).then(() => {
@@ -269,7 +273,7 @@ const confirmTokenUpdate = () => {
 };
 
 // Save HP changes back to token metadata
-const saveHpToToken = (newHp) => {
+const saveHpToToken = (newHp, newTempHp) => {
     if (!playerSelection.value || !playerSelection.value.metadata[`${ID}/monstersheet`]) {
         return;
     }
@@ -279,10 +283,12 @@ const saveHpToToken = (newHp) => {
         for (let item of items) {
             if (item.metadata[`${ID}/monstersheet`]) {
                 item.metadata[`${ID}/monstersheet`].current_hp = newHp;
+                item.metadata[`${ID}/monstersheet`].temp_hp = newTempHp;
             }
         }
     });
 };
+
 </script>
 
 
