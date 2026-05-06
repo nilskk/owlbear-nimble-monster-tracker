@@ -326,6 +326,29 @@ const saveHpToToken = (newHp, newTempHp) => {
     });
 };
 
+// Save description changes back to token metadata and bestiary
+const saveDescriptionToToken = async (newDescription) => {
+    // Update the token's metadata with the new description if a token is selected
+    if (playerSelection.value && playerSelection.value.metadata[`${ID}/monstersheet`]) {
+        OBR.scene.items.updateItems([playerSelection.value.id], (items) => {
+            for (let item of items) {
+                if (item.metadata[`${ID}/monstersheet`]) {
+                    item.metadata[`${ID}/monstersheet`].data.attributes.description = newDescription;
+                }
+            }
+        });
+    }
+
+    // Also update the bestiary database
+    if (selectedMonster.value && selectedMonster.value.name && selectedMonster.value.source) {
+        try {
+            await db.bestiary.put(selectedMonster.value);
+        } catch (error) {
+            console.error('Failed to update bestiary:', error);
+        }
+    }
+};
+
 </script>
 
 
@@ -365,7 +388,9 @@ const saveHpToToken = (newHp, newTempHp) => {
             <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
             <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
             <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
-            <DescriptionComponent :monster="selectedMonster" @rollDiceDescription="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
+            <DescriptionComponent :monster="selectedMonster"
+                       @rollDiceDescription="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)"
+                       @descriptionChanged="saveDescriptionToToken" />
         </div>
         
         <!-- Round D20 Toggle Button -->
