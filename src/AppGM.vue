@@ -16,6 +16,7 @@ import { db } from './db'
 import { deleteByNameAndSource } from './dbFunctions'
 import { rollDiceWithDiceRoller } from './diceFunctions';
 import { loadSettings, saveSettings } from './settingsFunctions';
+import { OWLTRACKER_ID, initialize_owltracker_for_token, update_owltracker_hp } from './owltrackerFunctions';
 import OBR from '@owlbear-rodeo/sdk';
 
 
@@ -52,42 +53,6 @@ onMounted(async () => {
         } catch (error) {
             console.error('Failed to load settings:', error);
         }
-
-        // Sync Clash HP changes back to the monstersheet metadata
-        OBR.scene.items.onChange((items) => {
-            const itemsToSync = [];
-
-            for (const item of items) {
-                const sheet = item.metadata?.[`${ID}/monstersheet`];
-                const clashHp = item.metadata?.[`${CLASH_ID}/clash_currentHP`];
-
-                if (!sheet || clashHp === undefined) continue;
-
-                const clashTempHp = item.metadata[`${CLASH_ID}/clash_tempHP`] || 0;
-
-                if (sheet.current_hp !== clashHp || sheet.temp_hp !== clashTempHp) {
-                    itemsToSync.push(item);
-                }
-            }
-
-            if (itemsToSync.length === 0) return;
-
-            OBR.scene.items.updateItems(itemsToSync, (updateItems) => {
-                for (const item of updateItems) {
-                    const sheet = item.metadata[`${ID}/monstersheet`];
-                    const clashHp = item.metadata[`${CLASH_ID}/clash_currentHP`];
-                    const clashTempHp = item.metadata[`${CLASH_ID}/clash_tempHP`] || 0;
-
-                    sheet.current_hp = clashHp;
-                    sheet.temp_hp = clashTempHp;
-
-                    // Keep local reactive state in sync
-                    if (playerSelection.value?.id === item.id) {
-                        playerSelection.value = item;
-                    }
-                }
-            });
-        });
     });  
     await refreshBestiary();
 });
@@ -231,17 +196,6 @@ const refreshBestiary = async () => {
 
 let lastCreature = null;
 
-function handleClashLabelChange(items) {
-    if (!items) return;
-    let clashLabelItem = items.filter(item => item.id == CLASH_LABEL_ID)[0];
-    console.log(clashLabelItem);
-    OBR.scene.items.getItems([clashLabelItem.attachedTo]).then((items) => {
-        // console.log(items);
-        showMonsterSheet(items[0]);
-        playerSelection.value = items[0];
-    }); 
-}
-
 function handlePlayerChange(player) {
     if(!player.selection) {
         playerSelection.value = null;
@@ -249,7 +203,7 @@ function handlePlayerChange(player) {
     } 
     OBR.scene.items.getItems(Array.isArray(player.selection) && player.selection.length > 0 ? [player.selection[0]] : []).then((items) => {
         if (items.length > 0) {
-            // console.log(items);
+            console.log(items);
             showMonsterSheet(items[0]);
             if (items[0].layer == 'CHARACTER') {
                 playerSelection.value = items[0]; 
@@ -258,6 +212,43 @@ function handlePlayerChange(player) {
     }); 
 }
 
+function handleOwltrackerChange(items) {
+    const itemsToSync = items.filter(item => {
+        const sheet = item.metadata?.[`${ID}/monstersheet`];
+        const owltracker_hp = item.metadata?.[`${OWLTRACKER_ID}/trackers`]?.[0]?.value;
+        const owltracker_temp_hp = item.metadata?.[`${OWLTRACKER_ID}/trackers`]?.[1]?.value;
+
+        if (!sheet) return false;
+        return sheet.current_hp !== owltracker_hp || sheet.temp_hp !== owltracker_temp_hp;
+    });
+
+    if (itemsToSync.length === 0) return;
+
+    const currentSelectionId = playerSelection.value?.id;
+    const shouldRefreshSelection = itemsToSync.some(item => item.id === currentSelectionId);
+
+    OBR.scene.items.updateItems(itemsToSync, (updateItems) => {
+        for (const item of updateItems) {
+            const sheet = item.metadata?.[`${ID}/monstersheet`];
+            const owltracker_hp = item.metadata?.[`${OWLTRACKER_ID}/trackers`]?.[0]?.value;
+            const owltracker_temp_hp = item.metadata?.[`${OWLTRACKER_ID}/trackers`]?.[1]?.value;
+
+            if (!sheet) continue;
+
+            sheet.current_hp = owltracker_hp;
+            sheet.temp_hp = owltracker_temp_hp;
+        }
+    }).then(() => {
+        if (shouldRefreshSelection && currentSelectionId) {
+            OBR.scene.items.getItems([currentSelectionId]).then((freshItems) => {
+                if (freshItems.length > 0) {
+                    playerSelection.value = freshItems[0];
+                    showMonsterSheet(playerSelection.value);
+                }
+            });
+        }
+    });
+}
 
 function showMonsterSheet(item) {
     if (!item || !item.metadata[`${ID}/monstersheet`]) return;
@@ -272,7 +263,7 @@ function showMonsterSheet(item) {
 
 
 OBR.player.onChange(handlePlayerChange);
-OBR.scene.local.onChange(handleClashLabelChange);
+OBR.scene.items.onChange(handleOwltrackerChange);
 
 const updateTokens = () => {
     myModal.value.showModal();
@@ -299,26 +290,7 @@ const confirmTokenUpdate = () => {
                         monsterData.current_hp = monsterData.data.attributes.hp;
                         monsterData.temp_hp = 0;
                         item.metadata[`${ID}/monstersheet`] = monsterData;
-                        item.metadata[`${CLASH_ID}/clash`] = true; // Flag to indicate this token has Clash metadata
-                        if (monsterData.data.attributes.armor == "none") {
-                            item.metadata[`${CLASH_ID}/clash_armorClass`] = "-";
-                        }
-                        else if (monsterData.data.attributes.armor == "medium") {
-                            item.metadata[`${CLASH_ID}/clash_armorClass`] = "M";
-                        }
-                        else if (monsterData.data.attributes.armor == "heavy") {
-                            item.metadata[`${CLASH_ID}/clash_armorClass`] = "H";
-                        }
-                        else {
-                            item.metadata[`${CLASH_ID}/clash_armorClass`] = monsterData.data.attributes.armor;
-                        }
-                        item.metadata[`${CLASH_ID}/clash_maxHP`] = monsterData.data.attributes.hp;
-                        item.metadata[`${CLASH_ID}/clash_currentHP`] = monsterData.current_hp;
-                        item.metadata[`${CLASH_ID}/clash_tempHP`] = monsterData.temp_hp;
-                        item.metadata[`${CLASH_ID}/clash_initiative`] = 10;
-                        item.metadata[`${CLASH_ID}/clash_unitName`] = monsterData.name;
-                        // Set Clash ID to have a the metadata applied directly
-                        item.metadata[`${CLASH_ID}/clash_id`] = item.id;   
+                        initialize_owltracker_for_token(item, monsterData.current_hp, monsterData.data.attributes.hp, monsterData.temp_hp, monsterData.data.attributes.armor); 
                     }
                 }).then(() => {
                     // Refresh the playerSelection to include the new metadata
@@ -347,8 +319,8 @@ const saveHpToToken = (newHp, newTempHp) => {
             if (item.metadata[`${ID}/monstersheet`]) {
                 item.metadata[`${ID}/monstersheet`].current_hp = newHp;
                 item.metadata[`${ID}/monstersheet`].temp_hp = newTempHp;
-                item.metadata[`${CLASH_ID}/clash_currentHP`] = newHp;
-                item.metadata[`${CLASH_ID}/clash_tempHP`] = newTempHp;
+                // Also update HP in Owltracker if it's initialized for this token
+                update_owltracker_hp(item, newHp, newTempHp);
             }
         }
     });
