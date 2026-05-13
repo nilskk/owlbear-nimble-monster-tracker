@@ -5,14 +5,17 @@ function prepare_url(url) {
         }
         // Process nimble.nexus URLs
         if (url.includes('nimble.nexus')) {
+            // Remove any query parameters
+            url = url.split('?')[0]
+
             const afterNexus = url.split('nimble.nexus')[1]
-            
+
             // Validate that the URL contains collections or monsters
             if (!afterNexus.includes('/collections') && !afterNexus.includes('/monsters')) {
                 alert('Invalid URL format. The URL must contain either "/collections" or "/monsters" after "nimble.nexus".')
                 return
             }
-            
+
             // Add /api after nimble.nexus if not already present
             if (!afterNexus.startsWith('/api')) {
                 url = url.replace('nimble.nexus', 'nimble.nexus/api')
