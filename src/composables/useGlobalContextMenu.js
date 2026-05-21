@@ -22,6 +22,7 @@ export const useGlobalContextMenu = () => {
     rollText.value = text
     currentModeIndex.value = initialModeIndex // Use the provided initial mode index
     critEnabled.value = defaultCrit // Use the provided default crit value
+    viciousAttack.value = text.includes('v') // Auto-enable vicious if notation has v
     currentEmitFunction.value = emitFn
     currentEventName.value = eventName
     showExtraOptions.value = showOpts

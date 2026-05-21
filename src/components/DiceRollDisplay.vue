@@ -134,8 +134,7 @@ const isRollExpanded = (rollIndex) => {
 }
 
 const formatRollNotation = (roll) => {
-    // Use the modified notation (includes minion multiplication) instead of original
-    let notation = roll.notation || roll.originalNotation
+    let notation = roll.originalNotation || roll.notation
     if (roll.rollMode !== 'normal') {
         notation += ` (${roll.rollMode === 'advantage' ? 'ADV' : 'DIS'} ${roll.count})`
     }

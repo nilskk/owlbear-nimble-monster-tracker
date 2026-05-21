@@ -9,7 +9,8 @@ function rollMinionAttack(diceString, rollMode="normal", count=1, minionCount=1,
     }
     
     // Extract modifier from original string
-    const originalDiceTypeMatch = originalDiceString.match(/(\d+)d(\d+)(.*)$/);
+    const cleanOriginal = originalDiceString.replace(/v/g, '');
+    const originalDiceTypeMatch = cleanOriginal.match(/(\d+)d(\d+)(.*)$/);
     const originalModifier = originalDiceTypeMatch ? originalDiceTypeMatch[3] : '';
     
     // Convert dice string for advantage/disadvantage
@@ -70,7 +71,12 @@ function rollMinionAttack(diceString, rollMode="normal", count=1, minionCount=1,
 function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1, crit=true, minionAttack=false, minionCount=1, viciousAttack=false) {
     console.log('rollDiceWithDiceRoller called with:', { diceString, rollMode, count, crit, minionAttack, minionCount, viciousAttack});
 
-    const originalDiceString = diceString; // Store the original notation
+    const originalDiceString = diceString; // Store the original notation before stripping v
+
+    if (!viciousAttack && !minionAttack && diceString.includes('v')) {
+        viciousAttack = true;
+    }
+    diceString = diceString.replace(/v/g, '');
     
     // Handle minion attacks with separate function
     if (minionAttack) {
@@ -78,7 +84,8 @@ function rollDiceWithDiceRoller(diceString, rollMode="normal", count=1, crit=tru
     }
     
     // Extract dice type and modifier from ORIGINAL string (before conversion)
-    const originalDiceTypeMatch = originalDiceString.match(/(\d+)d(\d+)(.*)$/);
+    const cleanOriginal = originalDiceString.replace(/v/g, '');
+    const originalDiceTypeMatch = cleanOriginal.match(/(\d+)d(\d+)(.*)$/);
     const originalModifier = originalDiceTypeMatch ? originalDiceTypeMatch[3] : '';
     
     diceString = convertDiceString(diceString, rollMode, count);
