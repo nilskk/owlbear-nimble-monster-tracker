@@ -36,6 +36,12 @@ const hasBloodied = computed(() => {
     return props.monster.data.attributes.bloodied !== undefined;
 });
 
+const formattedSubtype = computed(() => {
+    const subtype = props.monster.data.attributes.subtype;
+    if (!subtype) return '';
+    return subtype.charAt(0).toUpperCase() + subtype.slice(1);
+});
+
 // Format movement array
 const formattedMovement = computed(() => {
     if (!props.monster.data.attributes.movement || props.monster.data.attributes.movement.length === 0) {
@@ -182,18 +188,18 @@ const handleTempHpInput = (event) => {
 };
 
 const rollD20 = () => {
-    emit('rollDiceHeader', '1d20', 'normal', 1, false); // Save rolls without crit
+    emit('rollDiceHeader', '1d20', 'normal', 1, false, false, 1, false); // Save rolls: no crit, no minion attack, no vicious
 };
 
 const rollD20RightClick = (event) => {
     event.preventDefault();
-    show(event, '1d20', emit, 'rollDiceHeader', false); // Save rolls default to no crit
+    show(event, '1d20', emit, 'rollDiceHeader', false, 0, false); // Save rolls: no crit, hide extra options
 };
 
 </script>
 
 <template>
-    <div class="bg-base-200 rounded-lg p-4 m-2 shadow-lg">
+    <div class="bg-base-200 rounded-lg p-4 m-2 shadow-lg sticky top-0 z-10">
         <!-- Monster Name and Challenge Rating -->
         <div class="flex justify-between items-center mb-3">
             <div class="flex items-center gap-2">
@@ -201,7 +207,10 @@ const rollD20RightClick = (event) => {
                 <span v-if="isLastStand && hasLastStand" class="text-xl font-bold text-error">Last Stand</span>
                 <span v-if="isBloodied && hasBloodied" class="text-xl font-bold text-warning">Bloodied</span>
             </div>
-            <span class="badge badge-primary badge-soft font-bold">{{ props.monster.data.attributes.level || '-' }}</span>
+            <div class="flex items-center gap-2">
+                <span v-if="formattedSubtype" class="badge font-bold">{{ formattedSubtype }}</span>
+                <span class="badge badge-primary badge-soft font-bold">{{ props.monster.data.attributes.level || '-' }}</span>
+            </div>
         </div>
         
         <!-- Stats Grid -->

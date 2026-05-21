@@ -11,9 +11,10 @@ const critEnabled = ref(true) // Add crit state with default true
 const minionAttack = ref(false) // Add minion attack state
 const minionCount = ref(1) // Add minion count state
 const viciousAttack = ref(false) // Add vicious attack state
+const showExtraOptions = ref(true) // Control visibility of crit/minion/vicious checkboxes
 
 export const useGlobalContextMenu = () => {
-  const show = (event, text, emitFn, eventName, defaultCrit = true, initialModeIndex = 0) => {
+  const show = (event, text, emitFn, eventName, defaultCrit = true, initialModeIndex = 0, showOpts = true) => {
     // Close any existing menu first
     isVisible.value = false
     
@@ -23,10 +24,11 @@ export const useGlobalContextMenu = () => {
     critEnabled.value = defaultCrit // Use the provided default crit value
     currentEmitFunction.value = emitFn
     currentEventName.value = eventName
+    showExtraOptions.value = showOpts
     
     // Calculate position with boundary checking
     const menuWidth = 192 // w-48 = 192px
-    const menuHeight = 120 // Approximate height for the menu
+    const menuHeight = showOpts ? 120 : 50 // Smaller when extra options hidden
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
     
@@ -63,6 +65,7 @@ export const useGlobalContextMenu = () => {
     minionAttack.value = false
     minionCount.value = 1
     viciousAttack.value = false
+    showExtraOptions.value = true
   }
 
   const executeRoll = () => {
@@ -89,6 +92,7 @@ export const useGlobalContextMenu = () => {
     minionAttack,
     minionCount,
     viciousAttack,
+    showExtraOptions,
     show,
     close,
     executeRoll

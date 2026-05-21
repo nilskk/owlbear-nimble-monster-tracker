@@ -105,7 +105,11 @@ const toggleDiceRolls = () => {
     }
 };
 
-const rollDice = (value, rollMode, count = 1, crit = true, minionAttack = false, minionCount = 1, viciousAttack = false) => {
+const rollDice = (value, rollMode, count = 1, crit = true, minionAttack = null, minionCount = 1, viciousAttack = false) => {
+    // Auto-detect minion attack if not explicitly specified
+    if (minionAttack === null || minionAttack === undefined) {
+        minionAttack = selectedMonster.value?.data?.attributes?.subtype === 'minion';
+    }
     // Clear any existing dice result when starting a new roll
     diceRollResult.value = null;
     
@@ -431,7 +435,8 @@ const saveDescriptionToToken = async (newDescription) => {
         @update:showRollsToPlayers="showRollsToPlayers = $event" />
 
     <!-- Global Context Menu -->
-    <GlobalRollContextMenu />
+    <GlobalRollContextMenu
+        :monster="selectedMonster" />
 </template>
 
 

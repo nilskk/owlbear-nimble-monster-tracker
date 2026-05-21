@@ -7,21 +7,20 @@
       :style="{ left: position.x + 'px', top: position.y + 'px' }"
       @click.stop
     >
-      <!-- Crit checkbox -->
-      <div class="px-3 py-2 border-b border-base-300">
-        <label class="flex items-center cursor-pointer">
+      <!-- Crit/Minion/Vicious checkboxes (hidden for header saves) -->
+      <div v-if="showExtraOptions" class="px-3 py-2 border-b border-base-300">
+        <label v-if="props.monster?.data?.attributes?.subtype != 'minion'" class="flex items-center cursor-pointer">
           <input 
             type="checkbox" 
             v-model="critEnabled" 
             class="checkbox checkbox-sm mr-2"
-            :disabled="minionAttack"
             @click.stop
           />
           <span class="text-sm font-medium">Roll with Crit?</span>
         </label>
         
         <!-- Minion Attack checkbox with number input -->
-        <div class="flex items-center mt-2">
+        <div v-if="props.monster?.data?.attributes?.subtype === 'minion'" class="flex items-center mt-2">
           <label class="flex items-center cursor-pointer">
             <input
               type="checkbox"
@@ -37,15 +36,14 @@
             min="1"
             max="99"
             class="input input-xs w-16 ml-2"
-            :disabled="!minionAttack"
             @click.stop
             @focus.stop
             @blur.stop
           />
         </div>
 
-        <!-- Vicious Attack -->
-        <div class="flex items-center mt-2">
+        <!-- Vicious Attack (hidden for minions) -->
+        <div v-if="props.monster?.data?.attributes?.subtype != 'minion'" class="flex items-center mt-2">
           <label class="flex items-center cursor-pointer">
             <input
               type="checkbox"
@@ -81,6 +79,10 @@
 import { computed, nextTick, watch, onMounted, onUnmounted, ref } from 'vue'
 import { useGlobalContextMenu } from '../composables/useGlobalContextMenu.js'
 
+const props = defineProps({
+    monster: Object
+})
+
 const { 
   isVisible, 
   position, 
@@ -89,15 +91,10 @@ const {
   minionAttack,
   minionCount,
   viciousAttack,
+  showExtraOptions,
   close, 
   executeRoll 
 } = useGlobalContextMenu()
-
-// Watch minionAttack to disable crit when checked (but don't uncheck it)
-watch(minionAttack, (newValue) => {
-  // We don't need to set critEnabled.value = false here
-  // Just let the disabled state handle it
-})
 
 const currentModeText = computed(() => {
   if (currentModeIndex.value === 0) {
@@ -130,6 +127,10 @@ const handleDocumentClick = (event) => {
 // Watch for visibility changes to manage document listeners
 watch(isVisible, (newVal) => {
   if (newVal) {
+    // Default minion attack to checked if monster is a minion
+    if (props.monster?.data?.attributes?.subtype === 'minion') {
+      minionAttack.value = true
+    }
     // Remove any existing listener first
     document.removeEventListener('click', handleDocumentClick)
     // Add the listener with a slight delay to prevent immediate closing

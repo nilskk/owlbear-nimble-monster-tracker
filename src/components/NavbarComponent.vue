@@ -12,7 +12,7 @@
                                 <summary>{{ source }}</summary>
                                 <ul>
                                     <li v-for="monster in monsters" :key="monster.name">
-                                        <a @click="selectMonster(monster)">{{ monster.name }}</a>
+                                        <a @click="selectMonster(monster)">{{ monster.name }} <span v-if="monster.data?.attributes?.subtype" class="badge font-bold ml-1">{{ monster.data.attributes.subtype.charAt(0).toUpperCase() }}</span></a>
                                     </li>
                                 </ul>
                             </details>
