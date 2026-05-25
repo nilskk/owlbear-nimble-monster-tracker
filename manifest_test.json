@@ -1,12 +1,14 @@
 {
-  "name": "Nimble Monster Tracker Test",
-  "description": "A tool for uploading Nimble statblocks and assigning them to tokens.",
-  "version": "2.6.1",
+  "name": "Nimble Token Tracker Test",
+  "description": "A tool for uploading Nimble statblocks from nimble.nexus and assigning them to tokens.",
+  "icon": "/owlbear-nimble-monster-tracker/icon_test.svg",
+  "homepage_url": "https://github.com/nilskk/owlbear-nimble-monster-tracker",
+  "version": "2.7.0",
   "manifest_version": 1,
   "author": "nilskk",
   "action": {
-    "title": "Nimble Monster Tracker",
-    "icon": "/owlbear-nimble-monster-tracker/icon.svg",
+    "title": "Nimble Token Tracker Test",
+    "icon": "/owlbear-nimble-monster-tracker/icon_test.svg",
     "popover": "/owlbear-nimble-monster-tracker/",
     "height": 800,
     "width": 600
