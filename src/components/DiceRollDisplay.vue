@@ -54,7 +54,9 @@
             </div>
             
             <!-- Latest Roll - Full Display (At Bottom) -->
-            <div v-if="lastDiceRolls.length > 0" class="bg-base-300 shadow-lg rounded-lg max-w-80">
+            <div v-if="lastDiceRolls.length > 0" 
+                 :class="{ 'dice-roll-pop': animateNewRoll }"
+                 class="bg-base-300 shadow-lg rounded-lg max-w-80">
                 <div class="p-4">
                     <div class="text-xs opacity-70 mb-1">
                         <span v-if="lastDiceRolls[0].minionAttack && lastDiceRolls[0].minionCount > 1" class="text-orange-400 font-semibold">
@@ -96,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 // Props
 const props = defineProps({
@@ -116,6 +118,15 @@ const props = defineProps({
 
 // Local state for expanded rolls
 const expandedRolls = ref(new Set())
+
+const animateNewRoll = ref(false)
+
+watch(() => props.lastDiceRolls[0], (newVal, oldVal) => {
+    if (newVal !== oldVal) {
+        animateNewRoll.value = true
+        setTimeout(() => { animateNewRoll.value = false }, 400)
+    }
+})
 
 // Functions
 const toggleRollExpansion = (rollIndex) => {
@@ -141,3 +152,14 @@ const formatRollNotation = (roll) => {
     return notation
 }
 </script>
+
+<style scoped>
+@keyframes dicePop {
+    0% { transform: scale(0.8); }
+    100% { transform: scale(1); }
+}
+
+.dice-roll-pop {
+    animation: dicePop 0.35s ease-out;
+}
+</style>
