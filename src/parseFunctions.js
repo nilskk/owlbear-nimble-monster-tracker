@@ -11,8 +11,8 @@ function removeMatchingElements(array, stringsToMatch) {
 function parseText(value) {
     if (!value) return value;
 
-    // Regex to match dice notation patterns like 2d12, 1d10+4, 3d6-2, etc.
-    const dicePattern = /(\d+d\d+v?(?:\s*[+\-]\s*\d+)?)/gi;
+    // Regex to match dice notation patterns like 2d12, 1d10+4, 3d6-2, 2d20+2d20 etc.
+    const dicePattern = /(\d+d\d+v?(?:\s*[+\-]\s*\d+(?!d))?)/gi;
     
     // Regex to match DC checks like DC 15 WIL, DC 20 STR, etc.
     const dcPattern = /(DC\s+\d+\s+(?:WIL|INT|STR|DEX|ALL))/gi;
