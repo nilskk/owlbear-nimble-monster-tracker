@@ -1,23 +1,26 @@
 import Dexie from 'dexie';
 import { db } from './db';
 
+function normalizeMonsterRecord(monster, index) {
+    const validatedMonster = { ...monster };
+
+    // Ensure the monster has a name property
+    if (!validatedMonster.name) {
+        console.warn(`Monster at index ${index} is missing 'name' property. Setting default name.`);
+        validatedMonster.name = `Unknown Monster ${index + 1}`;
+    }
+
+    // Ensure the monster has a source property
+    if (!validatedMonster.source) {
+        console.warn(`Monster at index ${index} is missing 'source' property. Setting default source.`);
+        validatedMonster.source = 'Default';
+    }
+
+    return validatedMonster;
+}
+
 function writeBulkToTable(data) {
-    // Ensure all monster objects have the required properties for the database key
-    const validatedData = data.map((monster, index) => {
-        // Ensure the monster has a name property
-        if (!monster.name) {
-            console.warn(`Monster at index ${index} is missing 'name' property. Setting default name.`);
-            monster.name = `Unknown Monster ${index + 1}`;
-        }
-        
-        // Ensure the monster has a source property
-        if (!monster.source) {
-            console.warn(`Monster at index ${index} is missing 'source' property. Setting default source.`);
-            monster.source = 'Default';
-        }
-        
-        return monster;
-    });
+    const validatedData = data.map(normalizeMonsterRecord);
     
     return db.bestiary.bulkPut(validatedData).then(function(lastKey) {
         console.log("Done putting monster in indexeddb");
@@ -36,6 +39,28 @@ function writeBulkToTable(data) {
 function clearTable() {
     return db.bestiary.clear().then(function() {
         console.log("Cleared the table");
+    });
+}
+
+function exportBestiaryData() {
+    return db.bestiary.toArray().then(function(records) {
+        return {
+            app: 'owlbear-nimble-monster-tracker',
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            bestiary: records,
+        };
+    });
+}
+
+function replaceTable(data) {
+    const validatedData = data.map(normalizeMonsterRecord);
+
+    return db.transaction('rw', db.bestiary, async () => {
+        await db.bestiary.clear();
+        await db.bestiary.bulkPut(validatedData);
+        console.log(`Imported ${validatedData.length} monsters into indexeddb`);
+        return validatedData.length;
     });
 }
 
@@ -59,4 +84,4 @@ function deleteByNameAndSource(name, source) {
     });
 }
 
-export { writeBulkToTable, clearTable, deleteBySource, deleteByNameAndSource }
+export { writeBulkToTable, clearTable, deleteBySource, deleteByNameAndSource, exportBestiaryData, replaceTable }

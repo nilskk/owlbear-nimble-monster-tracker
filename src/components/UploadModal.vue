@@ -21,6 +21,21 @@
                     </button>
                 </div>
                 <div class="pt-4 border-t">
+                    <p class="font-bold mb-2">Import / Export IndexedDB</p>
+                    <div class="space-y-2">
+                        <button type="button" @click="exportBestiary" :disabled="isExporting || isImporting" class="btn btn-secondary w-full">
+                            <span v-if="isExporting" class="loading loading-spinner loading-sm"></span>
+                            {{ isExporting ? 'Exporting...' : 'Export Bestiary Backup' }}
+                        </button>
+                        <button type="button" @click="openImportPicker" :disabled="isImporting || isExporting" class="btn btn-outline w-full">
+                            <span v-if="isImporting" class="loading loading-spinner loading-sm"></span>
+                            {{ isImporting ? 'Importing...' : 'Import Bestiary Backup' }}
+                        </button>
+                        <input ref="importFileInput" type="file" accept="application/json,.json" class="hidden" @change="handleImportFile" />
+                    </div>
+                    <p class="text-xs opacity-70 mt-2">Export downloads a JSON backup. Import replaces the current bestiary with the backup contents.</p>
+                </div>
+                <div class="pt-4 border-t">
                     <p class="font-bold mb-2">Delete Specific Source</p>
                     <select v-model="sourceToDelete" class="select select-bordered select-sm w-full mb-2">
                         <option value="">Select source to delete</option>
@@ -46,7 +61,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { writeBulkToTable, clearTable, deleteBySource } from '../dbFunctions'
+import { writeBulkToTable, clearTable, deleteBySource, exportBestiaryData, replaceTable } from '../dbFunctions'
 import {prepare_url, get_data} from '../api'
 
 // Props
@@ -67,6 +82,9 @@ const selectedSource = ref('')
 const sourceToDelete = ref('')
 const jsonUrl = ref('')
 const isLoading = ref(false)
+const isExporting = ref(false)
+const isImporting = ref(false)
+const importFileInput = ref(null)
 
 // Computed
 const availableSources = computed(() => {
@@ -76,6 +94,68 @@ const availableSources = computed(() => {
 // Methods
 const showModal = () => {
     uploadModal.value?.showModal()
+}
+
+const openImportPicker = () => {
+    importFileInput.value?.click()
+}
+
+const exportBestiary = async () => {
+    if (isExporting.value || isImporting.value) return
+
+    isExporting.value = true
+
+    try {
+        const backup = await exportBestiaryData()
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+        const downloadUrl = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        const dateStamp = new Date().toISOString().slice(0, 10)
+
+        link.href = downloadUrl
+        link.download = `owlbear-nimble-monster-tracker-bestiary-${dateStamp}.json`
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        URL.revokeObjectURL(downloadUrl)
+    } catch (error) {
+        console.error('Error exporting bestiary:', error)
+        alert(`Error exporting bestiary: ${error.message}`)
+    } finally {
+        isExporting.value = false
+    }
+}
+
+const handleImportFile = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file || isImporting.value || isExporting.value) return
+
+    if (!window.confirm('Importing will replace all existing bestiary data. Continue?')) {
+        return
+    }
+
+    isImporting.value = true
+
+    try {
+        const fileContents = await file.text()
+        const parsedData = JSON.parse(fileContents)
+        const records = Array.isArray(parsedData) ? parsedData : parsedData?.bestiary
+
+        if (!Array.isArray(records)) {
+            throw new Error('The selected file does not contain a valid bestiary backup.')
+        }
+
+        const importedCount = await replaceTable(records)
+        emit('refreshBestiary')
+        alert(`Successfully imported ${importedCount} monsters.`)
+    } catch (error) {
+        console.error('Error importing bestiary:', error)
+        alert(`Error importing bestiary: ${error.message}`)
+    } finally {
+        isImporting.value = false
+    }
 }
 
 const saveJson = async () => {
@@ -150,6 +230,10 @@ const saveJson = async () => {
 }
 
 const deleteData = async () => {
+    if (!window.confirm('This will permanently delete all bestiary data. Continue?')) {
+        return
+    }
+
     await clearTable()
     emit('refreshBestiary')
 }
