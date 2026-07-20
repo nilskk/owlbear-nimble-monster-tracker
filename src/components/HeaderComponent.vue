@@ -6,7 +6,11 @@ import { useGlobalContextMenu } from '../composables/useGlobalContextMenu.js';
 
 const props = defineProps({
     monster: Object,
-    playerSelection: Object
+    playerSelection: Object,
+    numberOfHeroes: {
+        type: Number,
+        default: 4
+    }
 })
 
 const emit = defineEmits(['rollDiceHeader', 'hpChanged', 'tempHpChanged']);
@@ -17,6 +21,10 @@ const { show } = useGlobalContextMenu();
 const isEditing = ref(false);
 const isEditingTemp = ref(false);
 
+const creatorIncluded = computed(() => props.monster?.included?.find((item) => item?.type === 'users'))
+
+const creatorDisplayName = computed(() => creatorIncluded.value?.attributes?.displayName || '')
+
 // Check if Monster is in Last Stand State (0 or negative HP)
 const isLastStand = computed(() => {
     return props.monster.current_hp <= 0;
@@ -24,7 +32,7 @@ const isLastStand = computed(() => {
 
 // Check if Monster is Bloodied (current HP at or below half of max HP, but above 0)
 const isBloodied = computed(() => {
-    const bloodiedThreshold = Math.floor(props.monster.data.attributes.hp / 2);
+    const bloodiedThreshold = Math.floor(displayedMaxHp.value / 2);
     return props.monster.current_hp > 0 && props.monster.current_hp <= bloodiedThreshold;
 });
 
@@ -40,6 +48,27 @@ const formattedSubtype = computed(() => {
     const subtype = props.monster.data.attributes.subtype;
     if (!subtype) return '';
     return subtype.charAt(0).toUpperCase() + subtype.slice(1);
+});
+
+const displayedMaxHp = computed(() => {
+    const baseHp = Number(props.monster.data.attributes.hp) || 0;
+    const hpPerHero = Number(props.monster.data.attributes.hpPerHero);
+
+    if (!Number.isFinite(hpPerHero)) {
+        return baseHp;
+    }
+
+    return hpPerHero * (Number(props.numberOfHeroes) || 4);
+});
+
+const hpCalculationText = computed(() => {
+    const hpPerHero = Number(props.monster.data.attributes.hpPerHero);
+
+    if (!Number.isFinite(hpPerHero)) {
+        return '';
+    }
+
+    return `${hpPerHero} HP/Hero; ${Number(props.numberOfHeroes) || 4} Heroes`;
 });
 
 // Format movement array
@@ -90,7 +119,7 @@ const handleHpInput = (event) => {
     
     // Ensure current_hp is a number
     const currentHp = parseInt(props.monster.current_hp);
-    const maxHp = parseInt(props.monster.data.attributes.hp);
+    const maxHp = displayedMaxHp.value;
     const currentTempHp = parseInt(props.monster.temp_hp) || 0;
     
     // Check if input starts with + or -
@@ -212,7 +241,6 @@ const rollD20RightClick = (event) => {
                 <span class="badge badge-primary badge-soft font-bold">{{ props.monster.data.attributes.level || '-' }}</span>
             </div>
         </div>
-        
         <!-- Stats Grid -->
         <div class="grid grid-cols-2 gap-1">
             <!-- Armor -->
@@ -239,7 +267,7 @@ const rollD20RightClick = (event) => {
                            class="input input-sm w-16 h-8 text-center text-lg font-bold" 
                            placeholder="HP">
                     <span class="text-lg font-bold text-base-content">/</span>
-                    <span class="text-lg font-bold text-error">{{ props.monster.data.attributes.hp }}</span>
+                        <span class="text-lg font-bold text-error">{{ displayedMaxHp }}</span>
                     <input type="text" 
                            :value="props.monster.temp_hp || 0"
                            @focus="handleTempHpFocus"
@@ -247,10 +275,12 @@ const rollD20RightClick = (event) => {
                            @keydown="handleTempHpKeydown"
                            class="input input-sm w-16 h-8 text-center text-lg font-bold text-info ml-1" 
                            placeholder="Temp">
+                    <span v-if="hpCalculationText" class="ml-1 text-xs opacity-70">{{ hpCalculationText }}</span>
                 </template>
                 <!-- Show only max HP for all other cases -->
                 <template v-else>
-                    <span class="text-lg font-bold text-error">{{ props.monster.data.attributes.hp }}</span>
+                    <span class="text-lg font-bold text-error">{{ displayedMaxHp }}</span>
+                    <span v-if="hpCalculationText" class="ml-1 text-xs opacity-70">{{ hpCalculationText }}</span>
                 </template>
             </div>
             
@@ -265,6 +295,10 @@ const rollD20RightClick = (event) => {
                 <button @click="rollD20" @contextmenu="rollD20RightClick" class="btn btn-ghost btn-sm p-1 text-lg hover:bg-base-300">🎲</button>
                 <span class="text-lg font-bold" v-html="props.monster.data.attributes.saves ? parseSaves(props.monster.data.attributes.saves) : '-'"></span>
             </div>
+        </div>
+        <!-- Creator -->
+        <div class="flex justify-end">
+            <span v-if="creatorDisplayName" class="text-xs opacity-70 text-right">Creator: {{ creatorDisplayName }}</span>
         </div>
     </div>
 </template>

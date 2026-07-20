@@ -10,6 +10,7 @@ const ID = 'com.nilskk.owlbear-nimble-token-tracker'
 const diceRollsVisible = ref(false)
 const lastDiceRolls = ref([])
 const showRollsToPlayers = ref(false)
+const numberOfHeroes = ref(4)
 
 onMounted(async () => {
     OBR.onReady(async () => {
@@ -19,6 +20,7 @@ onMounted(async () => {
         try {
             const settings = await loadSettings(OBR);
             showRollsToPlayers.value = settings.showRollsToPlayers;
+            numberOfHeroes.value = settings.numberOfHeroes;
             console.log('Player initial settings loaded:', settings);
         } catch (error) {
             console.error('Failed to load initial settings in player view:', error);
@@ -49,6 +51,7 @@ onMounted(async () => {
         OBR.broadcast.onMessage(`${ID}/settings`, (event) => {
             console.log('Received settings broadcast:', event.data);
             showRollsToPlayers.value = event.data.showRollsToPlayers
+            numberOfHeroes.value = event.data.numberOfHeroes ?? numberOfHeroes.value
             
             // If setting is disabled, hide any visible rolls
             if (!showRollsToPlayers.value) {

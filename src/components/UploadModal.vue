@@ -185,7 +185,7 @@ const saveJson = async () => {
 
             for (const element of data.data.relationships.monsters.data) {
                 let id = element.id
-                url = "https://nimble.nexus/api/monsters/" + id + "?include=families"
+                url = "https://nimble.nexus/api/monsters/" + id + "?include=families,creator"
                 let data = await get_data(url)
                 monsters.push({
                     name: data.data.attributes?.name || 'Unknown Monster',

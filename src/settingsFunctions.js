@@ -4,7 +4,8 @@ const OBR_SETTINGS_KEY = 'owlbear-nimble-monster-tracker-room-settings';
 
 // Default settings structure
 const DEFAULT_SETTINGS = {
-    showRollsToPlayers: false
+    showRollsToPlayers: false,
+    numberOfHeroes: 4
 };
 
 /**

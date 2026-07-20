@@ -26,8 +26,8 @@ function prepare_url(url) {
                 url += '?include=monsters'
             }
 
-            if (afterNexus.includes('/monsters') && !url.includes('?include=families')) {
-                url += '?include=families'
+            if (afterNexus.includes('/monsters') && !url.includes('?include=families,creator')) {
+                url += '?include=families,creator'
             }
         }
     

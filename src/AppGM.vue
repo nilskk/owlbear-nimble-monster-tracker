@@ -4,6 +4,7 @@ import ActionsComponent from './components/ActionsComponent.vue';
 import FamiliesComponent from './components/FamiliesComponent.vue';
 import PassiveComponent from './components/PassiveComponent.vue';
 import LegendaryComponent from './components/LegendaryComponent.vue';
+import EncounterComponent from './components/EncounterComponent.vue';
 import DescriptionComponent from './components/DescriptionComponent.vue';
 import GlobalRollContextMenu from './components/GlobalRollContextMenu.vue';
 import UploadModal from './components/UploadModal.vue';
@@ -36,6 +37,7 @@ const diceRollsVisible = ref(false); // Simple visibility state for dice rolls
 
 // Initialize settings with default values first
 const showRollsToPlayers = ref(false); // Will be updated after OBR is ready
+const numberOfHeroes = ref(4);
 
 onMounted(async () => {
     console.log('AppGM mounted, waiting for OBR...');
@@ -49,7 +51,9 @@ onMounted(async () => {
             const settings = await loadSettings(OBR);
             console.log('Settings loaded:', settings);
             showRollsToPlayers.value = settings.showRollsToPlayers;
+            numberOfHeroes.value = settings.numberOfHeroes;
             console.log('showRollsToPlayers set to:', showRollsToPlayers.value);
+            console.log('numberOfHeroes set to:', numberOfHeroes.value);
         } catch (error) {
             console.error('Failed to load settings:', error);
         }
@@ -58,11 +62,11 @@ onMounted(async () => {
 });
 
 // Watch for settings changes and save to OBR room
-watch(showRollsToPlayers, async (newValue) => {
-    console.log('Settings changed, saving to OBR room:', newValue);
+watch([showRollsToPlayers, numberOfHeroes], async ([newShowRollsToPlayers, newNumberOfHeroes]) => {
+    console.log('Settings changed, saving to OBR room:', { showRollsToPlayers: newShowRollsToPlayers, numberOfHeroes: newNumberOfHeroes });
     // Save settings to OBR room
     try {
-        await saveSettings(OBR, { showRollsToPlayers: newValue });
+        await saveSettings(OBR, { showRollsToPlayers: newShowRollsToPlayers, numberOfHeroes: newNumberOfHeroes });
         console.log('Settings saved successfully');
     } catch (error) {
         console.error('Failed to save settings:', error);
@@ -70,9 +74,10 @@ watch(showRollsToPlayers, async (newValue) => {
     
     // Broadcast to players via OBR
     OBR.broadcast.sendMessage(`${ID}/settings`, {
-        showRollsToPlayers: newValue
+        showRollsToPlayers: newShowRollsToPlayers,
+        numberOfHeroes: newNumberOfHeroes
     });
-    console.log('Settings broadcast sent:', { showRollsToPlayers: newValue });
+    console.log('Settings broadcast sent:', { showRollsToPlayers: newShowRollsToPlayers, numberOfHeroes: newNumberOfHeroes });
 });
 
 
@@ -290,11 +295,15 @@ const confirmTokenUpdate = () => {
                 OBR.scene.items.updateItems(items, (items2) => {
                     for (let item of items2) {
                         const monsterData = JSON.parse(JSON.stringify(selectedMonster.value));
-                        // Always reset HP to max and temp HP to 0 when assigning to a token
-                        monsterData.current_hp = monsterData.data.attributes.hp;
+                        const baseHp = Number(monsterData.data.attributes.hp) || 0;
+                        const hpPerHero = Number(monsterData.data.attributes.hpPerHero);
+                        const effectiveHp = Number.isFinite(hpPerHero) ? hpPerHero * (Number(numberOfHeroes.value) || 4) : baseHp;
+
+                        // Always reset HP to the effective max and temp HP to 0 when assigning to a token
+                        monsterData.current_hp = effectiveHp;
                         monsterData.temp_hp = 0;
                         item.metadata[`${ID}/monstersheet`] = monsterData;
-                        initialize_owltracker_for_token(item, monsterData.current_hp, monsterData.data.attributes.hp, monsterData.temp_hp, monsterData.data.attributes.armor); 
+                        initialize_owltracker_for_token(item, monsterData.current_hp, effectiveHp, monsterData.temp_hp, monsterData.data.attributes.armor); 
                     }
                 }).then(() => {
                     // Refresh the playerSelection to include the new metadata
@@ -386,12 +395,14 @@ const saveDescriptionToToken = async (newDescription) => {
         <div v-if="selectedMonster" class="overflow-y-auto overflow-x-hidden flex-1">
             <HeaderComponent :monster="selectedMonster" 
                            :player-selection="playerSelection"
+                           :number-of-heroes="numberOfHeroes"
                            @rollDiceHeader="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)"
                            @hpChanged="saveHpToToken" />
             <FamiliesComponent :monster="selectedMonster" @rollDiceFamilies="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
             <PassiveComponent :monster="selectedMonster" @rollDicePassive="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
             <ActionsComponent :monster="selectedMonster" @rollDiceAction="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
             <LegendaryComponent :monster="selectedMonster" @rollDiceLegendary="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)" />
+            <EncounterComponent :monster="selectedMonster" />
             <DescriptionComponent :monster="selectedMonster"
                        @rollDiceDescription="(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack) => rollDice(value, rollMode, count, crit, minionAttack, minionCount, viciousAttack)"
                        @descriptionChanged="saveDescriptionToToken" />
@@ -432,7 +443,9 @@ const saveDescriptionToToken = async (newDescription) => {
     <SettingsModal 
         ref="settingsModalRef" 
         :show-rolls-to-players="showRollsToPlayers"
-        @update:showRollsToPlayers="showRollsToPlayers = $event" />
+        :number-of-heroes="numberOfHeroes"
+        @update:showRollsToPlayers="showRollsToPlayers = $event"
+        @update:numberOfHeroes="numberOfHeroes = $event" />
 
     <!-- Global Context Menu -->
     <GlobalRollContextMenu

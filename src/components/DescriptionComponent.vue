@@ -49,11 +49,13 @@ const saveDescription = () => {
                     rows="3"
                 ></textarea>
                 <template v-else>
+                    <template v-if="props.monster.data.attributes.description && props.monster.data.attributes.description.length > 0">
                     <p v-if="props.monster.data.attributes.description && props.monster.data.attributes.description.length > 0" 
                        class="w-full break-words cursor-text hover:bg-base-300 rounded px-1 -ml-1"
                        @click="startEditing">
                         <span v-html="parseText(props.monster.data.attributes.description)" class="ml-2 whitespace-pre-wrap"></span>
                     </p>
+                    </template>
                     <p v-else 
                        class="w-full break-words text-base-content/50 italic cursor-text hover:bg-base-300 rounded px-1 -ml-1"
                        @click="startEditing">
