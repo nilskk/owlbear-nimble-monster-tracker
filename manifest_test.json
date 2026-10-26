@@ -3,7 +3,7 @@
   "description": "A tool for uploading Nimble statblocks from nimble.nexus and assigning them to tokens.",
   "icon": "/owlbear-nimble-monster-tracker/icon_test.svg",
   "homepage_url": "https://github.com/nilskk/owlbear-nimble-monster-tracker",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "manifest_version": 1,
   "author": "nilskk",
   "action": {
