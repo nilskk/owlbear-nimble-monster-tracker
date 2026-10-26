@@ -28,6 +28,7 @@ onUpdated(attachListeners);
         <div v-for="action in props.monster.data.attributes.actions" :key="action.name" class="w-full break-words">
             <p class="w-full break-words">
                 <span v-if="action.name" class="font-bold" v-html="parseText(action.name)"></span>
+                <span v-if="action.damage?.roll" class="ml-2" v-html="parseText(action.damage.roll)"></span>
                 <span v-if="action.description" class="ml-2" v-html="parseText(action.description)"></span>
             </p>
         </div>
